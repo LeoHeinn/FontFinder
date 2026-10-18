@@ -4,16 +4,7 @@ Only one task is "In progress" at a time.
 
 ## In progress
 
-### T1 Scaffold the FastAPI backend
-- `backend/main.py` with `POST /detect` accepting one uploaded image (multipart form)
-- Reject anything that is not PNG, JPEG or WebP, or is over the size limit, before calling Gemini. Agree the limit with Leo in the plan.
-- Call Gemini with the prompt from `AGENTS.md`, key read from `GEMINI_API_KEY`
-- Pydantic response model matching the prompt's keys
-- Call `parse_gemini_response()` as a stub that raises `NotImplementedError`. Leo writes it in T2.
-- CORS middleware
-- Gemini 503, 429 and timeouts return clear HTTP errors
-- `backend/requirements.txt` and `.env.example`
-- Done when: the app imports cleanly, pytest tests for upload validation pass, and Leo has approved the plan
+None. Leo moves T2 here when he starts it.
 
 ## Next
 
@@ -43,3 +34,4 @@ Only one task is "In progress" at a time.
 - `test.py` works end to end with `gemini-3.8-flash`
 - API key moved into `.env`, and `.env` is gitignored
 - Prompt chosen
+- T1 Scaffold the FastAPI backend (see `progress.md`): 9 upload validation tests pass
