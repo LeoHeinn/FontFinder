@@ -4,12 +4,9 @@ Only one task is "In progress" at a time.
 
 ## In progress
 
-None. Leo moves T3 here when he starts it.
+None. Leo moves T4 here when he starts it.
 
 ## Next
-
-### T3 Tests for the parser
-- After T2. Cover valid JSON, fenced JSON, missing keys, wrong types, "Unknown" family, non-JSON text
 
 ### T4 Real image check
 - Run `/detect` against a plain screenshot of typed text and against the stylized test image. Record the results.
@@ -19,7 +16,7 @@ None. Leo moves T3 here when he starts it.
 - File input, `fetch` to `/detect`, render the result, show errors and a loading state for the cold start
 - A short note that images are sent to Google's Gemini API
 
-### T6 Deploy (Leo does)
+### T6 Deploy (Leo)
 - Backend to Render with `GEMINI_API_KEY` set in the dashboard, frontend to GitHub Pages, point `index.html` at the Render URL
 
 ### T7 Update README
@@ -31,4 +28,5 @@ None. Leo moves T3 here when he starts it.
 - API key moved into `.env`, and `.env` is gitignored
 - Prompt chosen
 - T1 Scaffold the FastAPI backend (see `progress.md`): 9 upload validation tests pass
-- T2 Parse and validate the Gemini response (see `progress.md`): written by Claude at Leo's explicit request, checked by hand, tests are T3
+- T2 Parse and validate the Gemini response (see `progress.md`): checked by hand, tests are T3
+- T3 Tests for the parser (see `progress.md`): 28 new tests in `backend/tests/test_parser.py`, 37 pass in total
