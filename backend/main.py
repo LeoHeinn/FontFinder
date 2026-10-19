@@ -138,6 +138,8 @@ def parse_gemini_response(raw_text: str) -> DetectResult:
 
     if result.sizeMinPx > result.sizeMaxPx:
         raise ValueError("Model reply has sizeMinPx larger than sizeMaxPx.")
+    if not result.family.strip():
+        raise ValueError("Model reply has an empty family.")
     return result
 
 
