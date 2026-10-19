@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 from typing import List, Literal, Optional
 
@@ -6,7 +7,7 @@ import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 load_dotenv()
 
@@ -116,8 +117,28 @@ def call_gemini(image_bytes: bytes, mime_type: str) -> str:
 
 
 def parse_gemini_response(raw_text: str) -> DetectResult:
-    """Turn raw model text into a validated DetectResult. Leo writes this in T2."""
-    raise NotImplementedError
+    """Turn raw model text into a validated DetectResult. Raises ValueError if the text is not valid."""
+    # Gemini can wrap the JSON in code fences or add text around it,
+    # so keep only what is between the first "{" and the last "}".
+    start = raw_text.find("{")
+    end = raw_text.rfind("}")
+    if start == -1 or end < start:
+        raise ValueError("Model reply contains no JSON object.")
+
+    try:
+        data = json.loads(raw_text[start : end + 1])
+    except json.JSONDecodeError:
+        raise ValueError("Model reply is not valid JSON.")
+
+    # Pydantic rejects missing keys, wrong types and values outside the allowed lists.
+    try:
+        result = DetectResult(**data)
+    except ValidationError:
+        raise ValueError("Model reply has missing keys or wrong types.")
+
+    if result.sizeMinPx > result.sizeMaxPx:
+        raise ValueError("Model reply has sizeMinPx larger than sizeMaxPx.")
+    return result
 
 
 @app.post("/detect", response_model=DetectResult)
@@ -134,4 +155,7 @@ def detect(file: UploadFile = File(...)) -> DetectResult:
         raise HTTPException(status_code=415, detail="Only PNG, JPEG and WebP images are accepted.")
 
     raw_text = call_gemini(data, mime_type)
-    return parse_gemini_response(raw_text)
+    try:
+        return parse_gemini_response(raw_text)
+    except ValueError:
+        raise HTTPException(status_code=502, detail="The font service returned an unexpected reply.")

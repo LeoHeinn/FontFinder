@@ -4,13 +4,9 @@ Only one task is "In progress" at a time.
 
 ## In progress
 
-None. Leo moves T2 here when he starts it.
+None. Leo moves T3 here when he starts it.
 
 ## Next
-
-### T2 Parse and validate the Gemini response (Leo writes)
-- Turn raw model text into the Pydantic result, including stripping markdown code fences
-- Return a clear error when the output is not valid JSON or is missing keys
 
 ### T3 Tests for the parser
 - After T2. Cover valid JSON, fenced JSON, missing keys, wrong types, "Unknown" family, non-JSON text
@@ -35,3 +31,4 @@ None. Leo moves T2 here when he starts it.
 - API key moved into `.env`, and `.env` is gitignored
 - Prompt chosen
 - T1 Scaffold the FastAPI backend (see `progress.md`): 9 upload validation tests pass
+- T2 Parse and validate the Gemini response (see `progress.md`): written by Claude at Leo's explicit request, checked by hand, tests are T3

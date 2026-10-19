@@ -43,3 +43,31 @@ One section per finished task, newest last.
 - Until `ALLOWED_ORIGINS` is set, a browser on GitHub Pages will be blocked. The GitHub Pages URL is still needed.
 - Packages went into the user-level Python 3.9 site-packages, not a virtual environment.
 - `TASKS.md` and `DECISIONS.md` are not updated yet.
+
+## T2 Parse and validate the Gemini response (done)
+
+**Files changed**
+- `backend/main.py`
+- `TASKS.md`, `DECISIONS.md`
+
+**What was done**
+- `parse_gemini_response()` keeps only the text between the first `{` and the last `}`. This removes markdown code fences and any text around the JSON.
+- It parses with `json.loads` and validates with `DetectResult`, so missing keys, wrong types and bad `confidence` or `category` values fail.
+- A reply with `sizeMinPx` larger than `sizeMaxPx` is rejected, not swapped.
+- Every failure raises `ValueError` with a short message that never includes the model text.
+- `detect()` catches `ValueError` and returns a 502 "unexpected reply".
+- Exception to the owner-written rule: Leo explicitly asked Claude to write it. Leo should read it and be able to explain every line.
+
+**Checks run**
+- `python3 -m py_compile backend/main.py`: ok.
+- Throwaway manual check of 12 inputs: plain, fenced, text around the JSON and "Unknown" family all return a result. Not JSON, bad JSON, missing key, wrong type, bad category, swapped sizes, a list and an empty string all raise `ValueError`.
+- `python3 -m pytest -q`: 9 passed.
+
+**Not verified**
+- No parser tests in the repo yet (T3).
+- The 502 path in `detect()` has no test.
+- No real Gemini call.
+
+**Concerns**
+- The first `{` to last `}` approach can swallow two JSON objects in one reply. That would fail as invalid JSON, which is safe.
+- Zero or negative sizes are accepted. A fix would change the response schema, so it is not done.
