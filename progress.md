@@ -71,3 +71,32 @@ One section per finished task, newest last.
 **Concerns**
 - The first `{` to last `}` approach can swallow two JSON objects in one reply. That would fail as invalid JSON, which is safe.
 - Zero or negative sizes are accepted. A fix would change the response schema, so it is not done.
+
+## T3 Tests for the parser (done)
+
+**Files changed**
+- `backend/tests/test_parser.py` (new)
+- `TASKS.md`, `AGENTS.md` (branch check added as step 0)
+
+**What was done**
+- 28 tests call `parse_gemini_response()` directly. There is no HTTP and no Gemini call.
+- Passing cases: plain JSON with every field checked, ```` ```json ```` fence, plain fence, text around the JSON, "Unknown" family, equal min and max size, an extra key.
+- Failing cases (`ValueError`): prose, empty, whitespace, broken JSON, a JSON list, each of the 8 keys missing, a bad `alternatives` type, a bad `sizeMinPx` type, a bad `confidence` value, a bad `category` value, min larger than max.
+- The error message never contains the model text.
+- `/detect` returns 502 on a bad reply, with Gemini mocked, and the model text is not in the response.
+
+**Checks run**
+- `python3 -m pytest -q`: 37 passed (9 old, 28 new).
+
+**Found, not fixed** (would change validation or the schema, so it is Leo's call)
+- Pydantic's lax mode accepts a numeric string: `"sizeMinPx": "14"` becomes `14.0`. Harmless, but the reply is not strictly the shape the prompt asks for.
+- An empty `family` (`""`) passes validation.
+
+**Not verified**
+- No real Gemini call yet.
+
+### T3 follow-up: empty family (done)
+- Leo's call: reject an empty or whitespace-only `family`, keep accepting numeric strings like `"14"`.
+- `parse_gemini_response()` now raises `ValueError` when `family.strip()` is empty, so `/detect` returns 502 instead of a blank font name.
+- New test `test_empty_family_raises` covers `""` and `"   "`.
+- `python3 -m pytest -q`: 39 passed.
