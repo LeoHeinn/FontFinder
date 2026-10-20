@@ -30,3 +30,4 @@ None. Leo moves T4 here when he starts it.
 - T1 Scaffold the FastAPI backend (see `progress.md`): 9 upload validation tests pass
 - T2 Parse and validate the Gemini response (see `progress.md`): checked by hand, tests are T3
 - T3 Tests for the parser (see `progress.md`): 28 new tests in `backend/tests/test_parser.py`, 37 pass in total
+- T3b Upload size limit fix (see `progress.md`, `ISSUES.md`): 1 MiB limit plus byte-counting middleware, 44 tests pass

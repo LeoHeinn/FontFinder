@@ -100,3 +100,25 @@ One section per finished task, newest last.
 - `parse_gemini_response()` now raises `ValueError` when `family.strip()` is empty, so `/detect` returns 502 instead of a blank font name.
 - New test `test_empty_family_raises` covers `""` and `"   "`.
 - `python3 -m pytest -q`: 39 passed.
+
+## T3b Upload size limit fix (done)
+
+**Files changed**
+- `backend/main.py`, `backend/tests/test_detect.py`
+- `TASKS.md`, `DECISIONS.md`, `ISSUES.md`
+
+**What was done**
+- `MAX_UPLOAD_BYTES` lowered from 2 MB to 1 MiB, with one shared message `TOO_LARGE_DETAIL`.
+- New `BodySizeLimitMiddleware`: wraps `receive`, counts request body bytes and raises `HTTPException(413)` before handing over the chunk that passes the limit. FastAPI turns that into a normal 413. No `Content-Length` shortcut, so middleware order with CORS does not matter.
+- The upload parser never sees more than 1 MiB, so the image stays under Starlette's 1 MiB in-memory limit and never reaches disk.
+- The wrong comment in `detect()` is fixed. The size check there stays as a backstop.
+
+**Checks run**
+- `python3 -m py_compile backend/main.py backend/tests/test_detect.py`: ok.
+- `python3 -m pytest -q`: 44 passed (39 old, 5 new: chunked upload, just-under-limit stays in memory, middleware stops reading, middleware passes small and exactly-at-limit bodies).
+- Throwaway check without the middleware: a 1.5 MiB upload triggers `rollover` once and a just-under-1 MiB upload does not, so the in-memory test can really fail.
+
+**Not verified**
+- No uvicorn run and no real Gemini call.
+- TestClient joins chunked bodies into one message, so chunk-by-chunk counting is proven by the direct middleware test, not end to end.
+- Behaviour behind Render's proxy is unknown.

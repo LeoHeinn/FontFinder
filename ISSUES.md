@@ -2,7 +2,7 @@
 
 Every bug, error or issue found in the project. One entry per issue, status in the title (open, fix chosen, fixed). New entries go at the bottom.
 
-### Uploads are fully received before the size check, and 1 to 2 MB uploads touch disk (open, fix chosen)
+### Uploads are fully received before the size check, and 1 to 2 MB uploads touch disk (fixed in T3b)
 
 **Where**
 - `backend/main.py:147` `detect(file: UploadFile = File(...))`: FastAPI receives and stores the whole upload before `detect()` runs.
@@ -38,3 +38,9 @@ Every bug, error or issue found in the project. One entry per issue, status in t
 
 **Not verified**
 - Found by reading library source only. Nothing was run. Render's proxy behaviour with large bodies is unknown.
+
+**Fixed (T3b, branch `fix-upload-limit`)**
+- `MAX_UPLOAD_BYTES` is now 1 MiB, and `BodySizeLimitMiddleware` in `backend/main.py` counts body bytes and raises 413 once the total passes it.
+- Line numbers above are from before the fix. The check in `detect()` is now a backstop and its comment is corrected.
+- Tests in `backend/tests/test_detect.py`: chunked upload without `Content-Length` returns 413, a just-under-limit image never rolls to disk, and the middleware stops reading after the limit and passes small bodies through.
+- `python3 -m pytest -q`: 44 passed.

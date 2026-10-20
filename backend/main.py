@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ValidationError
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 load_dotenv()
 
@@ -18,7 +19,10 @@ GEMINI_URL = (
     + ":generateContent"
 )
 GEMINI_TIMEOUT_SECONDS = 30
-MAX_UPLOAD_BYTES = 2 * 1024 * 1024  # 2 MB, agreed with Leo
+# 1 MiB. Starlette keeps uploads in memory up to 1 MiB and only then writes them
+# to a temp file, so staying at or under this limit keeps images off disk.
+MAX_UPLOAD_BYTES = 1024 * 1024
+TOO_LARGE_DETAIL = "File is too large. Maximum is 1 MB."
 
 PROMPT = """You are a typography expert. Identify the font in this screenshot of text.
 Respond with ONLY a JSON object, no markdown, with these keys:
@@ -43,7 +47,38 @@ class DetectResult(BaseModel):
     reasoning: str
 
 
+class BodySizeLimitMiddleware:
+    """Stop reading a request once its body passes max_bytes, so big uploads are never fully received."""
+
+    def __init__(self, app: ASGIApp, max_bytes: int) -> None:
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        received = 0
+
+        async def limited_receive() -> Message:
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                # Raise before returning the chunk, so the upload parser never sees more than max_bytes.
+                # FastAPI turns an HTTPException raised while reading the body into a normal response.
+                if received > self.max_bytes:
+                    raise HTTPException(status_code=413, detail=TOO_LARGE_DETAIL)
+            return message
+
+        await self.app(scope, limited_receive, send)
+
+
 app = FastAPI()
+
+# Counts body bytes instead of trusting Content-Length, because chunked uploads have no length.
+app.add_middleware(BodySizeLimitMiddleware, max_bytes=MAX_UPLOAD_BYTES)
 
 allowed_origins = [
     origin.strip()
@@ -145,12 +180,13 @@ def parse_gemini_response(raw_text: str) -> DetectResult:
 
 @app.post("/detect", response_model=DetectResult)
 def detect(file: UploadFile = File(...)) -> DetectResult:
-    # Read one byte past the limit so an oversize file is detected without loading all of it.
+    # BodySizeLimitMiddleware has already capped the request at MAX_UPLOAD_BYTES.
+    # Reading one byte past the limit keeps the check below as a backstop if the middleware is removed.
     data = file.file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) == 0:
         raise HTTPException(status_code=400, detail="The uploaded file is empty.")
     if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="File is too large. Maximum is 2 MB.")
+        raise HTTPException(status_code=413, detail=TOO_LARGE_DETAIL)
 
     mime_type = sniff_image_type(data)
     if mime_type is None:
