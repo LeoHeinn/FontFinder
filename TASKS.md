@@ -4,13 +4,14 @@ Only one task is "In progress" at a time.
 
 ## In progress
 
-None. Leo moves T4 here when he starts it.
+None. Moves T4 here when he starts it.
 
 ## Next
 
 ### T4 Real image check
-- Run `/detect` against a plain screenshot of typed text and against the stylized test image. Record the results.
+- Run `/detect` against the 5 images in `samples/` (Inter, Playfair Display, JetBrains Mono for plain text; Dancing Script and Bungee for stylized lettering). Record the results.
 - Decide whether to add the stylized-lettering line to the prompt
+- Paused 2026-10-20: all real Gemini calls returned 503 or 504 (see `ISSUES.md`, `progress.md`). Retry one image first later.
 
 ### T5 Write `index.html`
 - File input, `fetch` to `/detect`, render the result, show errors and a loading state for the cold start
@@ -18,6 +19,7 @@ None. Leo moves T4 here when he starts it.
 
 ### T6 Deploy (Leo)
 - Backend to Render with `GEMINI_API_KEY` set in the dashboard, frontend to GitHub Pages, point `index.html` at the Render URL
+- Do not deploy until T4 has at least one real successful image result
 
 ### T7 Update README
 - Python backend setup, `/detect` request and response shape, limitations, privacy note

@@ -18,7 +18,7 @@ Add the row in the same commit it describes (merges included). A commit cannot k
 | Branch | Task | Points to | State |
 |---|---|---|---|
 | `main` | All finished tasks | `6b22f2d` T3b | 4 commits ahead of GitHub (`origin/main` is at `2e5afde`). Not pushed. |
-| `t4-real-check` | T4 | latest row in the log | T4 work. Has everything in `main`, plus the `test.py` move and this report. In use. |
+| `t4-real-check` | T4 | `9a209df` Setup | T4 work. Has everything in `main`, plus the `test.py` move and this report. In use. |
 | `fix-upload-limit` | T3b | `6b22f2d` T3b | Fully merged into `main`. Safe to delete. |
 | `t3-test` | T2, T3 | `2e5afde` | Fully merged into `main`. Safe to delete. |
 | `claude` | T1 | `5f0adf4` | Fully merged into `main`. Safe to delete. |
@@ -43,5 +43,5 @@ Add the row in the same commit it describes (merges included). A commit cannot k
 | 2026-10-20 | `39af8f6` | fix-upload-limit | T4 | git ignore forgot on t4 (spelling wrong) | Fixed a typo in that `.gitignore` line. |
 | 2026-10-20 | `6b22f2d` | fix-upload-limit | T3b | T3b: Implement upload size limit fix with BodySizeLimitMiddleware and update related tests (Issue Fix) | 1 MiB upload limit and byte-counting middleware, 5 new tests, docs. Then `main` was moved up to here. |
 | 2026-10-20 | `cd8776b` | t4-real-check | T4 | Merge branch 'main' into t4-real-check | Brought the T3b fix into T4. `ISSUES.md` conflicted (added on both branches) and was resolved by keeping `main`'s version. |
-| 2026-10-20 | `(pending)` | t4-real-check | Setup | Add GITREPORT.md, a plain-language commit log | Starts tracking this report. Every commit from here on adds its own row. |
+| 2026-10-20 | `9a209df` | t4-real-check | Setup | Add GITREPORT.md | Adds this report. Every commit from here on adds its own row. |
 

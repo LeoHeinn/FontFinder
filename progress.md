@@ -122,3 +122,28 @@ One section per finished task, newest last.
 - No uvicorn run and no real Gemini call.
 - TestClient joins chunked bodies into one message, so chunk-by-chunk counting is proven by the direct middleware test, not end to end.
 - Behaviour behind Render's proxy is unknown.
+
+## T4 Real image check (paused, no results yet)
+
+**Files changed**
+- `TASKS.md`, `GITREPORT.md`, `AGENTS.md` (stale doc fixes), `ISSUES.md`, `progress.md`
+- `backend/main.py` untouched (timeout was tried at 45 s and reverted to 30 s)
+
+**What was done**
+- Started uvicorn locally and sent each `samples/` image once. All 5 failed:
+  - Inter: 504. Playfair Display: 503. JetBrains Mono: 504. Dancing Script: 503. Bungee: 504.
+- Tried `GEMINI_TIMEOUT_SECONDS` = 45 and sent Inter once more: 503 after about 3 s. Reverted to 30.
+- Leo paused T4 to work on T5 and come back later.
+
+**Checks run**
+- 5 real `/detect` calls, then 1 more with the 45 s timeout. None returned a font.
+- The error mapping worked: Gemini 503 became "busy" (503), a timeout became 504, no traceback.
+
+**Not verified**
+- Whether the code works on a real successful Gemini reply. No font family, size range or prompt result has been seen.
+- The cause of the 504s. The 503s come from Gemini, so they are not our code. Nothing was checked beyond status codes.
+- The stylized-lettering prompt decision. It needs real Dancing Script and Bungee results.
+
+**To resume**
+- Retry one image first (Inter), then the other four, once Gemini answers.
+- Do not deploy (T6) before at least one real image has passed.

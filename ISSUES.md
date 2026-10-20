@@ -44,3 +44,19 @@ Every bug, error or issue found in the project. One entry per issue, status in t
 - Line numbers above are from before the fix. The check in `detect()` is now a backstop and its comment is corrected.
 - Tests in `backend/tests/test_detect.py`: chunked upload without `Content-Length` returns 413, a just-under-limit image never rolls to disk, and the middleware stops reading after the limit and passes small bodies through.
 - `python3 -m pytest -q`: 44 passed.
+
+### T4: real Gemini calls fail with 503 or 504 (open)
+
+**Where**
+- `backend/main.py` `call_gemini()`, run locally with uvicorn on 2026-10-20, one request per file in `samples/`.
+
+**Effect**
+- Inter 504, Playfair Display 503, JetBrains Mono 504, Dancing Script 503, Bungee 504. A later Inter retry with a 45 s timeout gave 503 after about 3 s.
+- No font result was returned, so T4 has no data yet.
+- Error mapping worked: 503 became "busy", the timeout became 504, no traceback.
+
+**Cause**
+- Not known. The 503s come from Gemini, so likely high demand. The 504s are unexplained (Gemini hanging or the network). The 30 s timeout is not the cause. Nothing was checked beyond status codes.
+
+**Status**
+- Open. T4 paused. Retry one image later. 45 s timeout was tried and reverted.
