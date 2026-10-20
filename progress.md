@@ -147,3 +147,32 @@ One section per finished task, newest last.
 **To resume**
 - Retry one image first (Inter), then the other four, once Gemini answers.
 - Do not deploy (T6) before at least one real image has passed.
+
+## T5 Write `index.html` (done)
+
+**Files changed**
+- `index.html` (new, repo root)
+- `TASKS.md`, `DECISIONS.md`, `progress.md`
+
+**What was done**
+- One static page, vanilla JS. File input with preview, "Find font" button, result card, privacy note about Gemini.
+- Before upload it rejects wrong types and files over 1 MiB with a clear message.
+- `fetch` to `API_URL + "/detect"` with form field `file`. Shows a loading message for the cold start, a 90 s timeout via `AbortController`, and the backend's `detail` text on errors.
+- Size is shown as a range. Backend text goes in with `textContent`, so no HTML from the reply is parsed.
+- `API_URL` is `http://127.0.0.1:8000` for now. Change it to the Render URL in T6.
+
+**Checks run**
+- Served a copy of `index.html` from the scratchpad with `python3 -m http.server` (not the repo root, which would expose `.env`), opened it in the built-in browser, and stubbed `fetch`. Results seen:
+  - wrong file type: message shown, button disabled
+  - file of 1 MiB + 1 byte: "too large" message. Exactly 1 MiB: accepted
+  - loading state while waiting, then result card ("Inter", "14 to 18 px (body text)", alternatives)
+  - reply text containing `<b>` was shown as text, not parsed
+  - stubbed 503 and 413 show the backend `detail`. A non-JSON 500 shows a status message. A network failure shows "Could not reach the server"
+- `python3 -m pytest -q`: 44 passed (backend untouched).
+
+**Not verified**
+- No real request to the backend or Gemini. T4 is paused, and Gemini returned 503/504.
+- The 90 s timeout message was not triggered.
+- CORS from a real origin: the page was never sent to the real backend. `ALLOWED_ORIGINS` needs the GitHub Pages URL at T6.
+- Looks only checked at desktop size in one browser. Not checked on a phone.
+- GitHub Pages hosting and Render cold start timing.
