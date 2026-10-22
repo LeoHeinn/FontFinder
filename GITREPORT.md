@@ -13,12 +13,13 @@ Add the row in the same commit it describes (merges included). A commit cannot k
 | Date | Hash | Branch | Task | Commit message | What changed, in plain words |
 ```
 
-## Branches right now (2026-10-20)
+## Branches right now (2026-10-22)
 
 | Branch | Task | Points to | State |
 |---|---|---|---|
-| `main` | All finished tasks | `6b22f2d` T3b | 4 commits ahead of GitHub (`origin/main` is at `2e5afde`). Not pushed. |
-| `t4-real-check` | T4 | `9a209df` Setup | T4 work. Has everything in `main`, plus the `test.py` move and this report. In use. |
+| `main` | T1 to T3b, T4 notes | `10a8c35` T4 | 9 commits ahead of GitHub (`origin/main` is at `2e5afde`). Not pushed. |
+| `t5-frontend` | T5 | `d665250` T5 | 2 commits ahead of `main` (`f790722`, `d665250`). Not merged into `main` yet. |
+| `t4-real-check` | T4 | `10a8c35` T4 | Fully merged into `main`. T4 is paused (Gemini 503/504 and wrong fonts). Retry on this branch or a new one. |
 | `fix-upload-limit` | T3b | `6b22f2d` T3b | Fully merged into `main`. Safe to delete. |
 | `t3-test` | T2, T3 | `2e5afde` | Fully merged into `main`. Safe to delete. |
 | `claude` | T1 | `5f0adf4` | Fully merged into `main`. Safe to delete. |
@@ -44,4 +45,7 @@ Add the row in the same commit it describes (merges included). A commit cannot k
 | 2026-10-20 | `6b22f2d` | fix-upload-limit | T3b | T3b: Implement upload size limit fix with BodySizeLimitMiddleware and update related tests (Issue Fix) | 1 MiB upload limit and byte-counting middleware, 5 new tests, docs. Then `main` was moved up to here. |
 | 2026-10-20 | `cd8776b` | t4-real-check | T4 | Merge branch 'main' into t4-real-check | Brought the T3b fix into T4. `ISSUES.md` conflicted (added on both branches) and was resolved by keeping `main`'s version. |
 | 2026-10-20 | `9a209df` | t4-real-check | Setup | Add GITREPORT.md | Adds this report. Every commit from here on adds its own row. |
+| 2026-10-20 | `10a8c35` | t4-real-check | T4 | Update documantation for T4 Issue: Continue to T5 | Docs only. Fixed this report's last row and branch table, added the T4 failure entry to `ISSUES.md` (Gemini 503/504), a "T4 paused" section in `progress.md`, and the T4 and T6 notes in `TASKS.md`. Then `main` was moved up to here. |
+| 2026-10-20 | `f790722` | t5-frontend | T5 | Update TASKS.md and progress.md for T5: Add `index.html` task details and document implementation progress | Docs only. T5 moved to Done in `TASKS.md` and a T5 section added to `progress.md`. The page itself came in the next commit. |
+| 2026-10-22 | `d665250` | t5-frontend | T5 | T5: Front End Add index.html for font detection functionality with image upload and API integration | New `index.html` at the repo root: file picker with preview, type and 1 MiB check before upload, loading message, result card, error messages. Checked with a stubbed `fetch` and by hand against the real backend. |
 
