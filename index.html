@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Font Finder</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 640px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.5;
+      color: #222;
+    }
+    h1 { margin-bottom: 0.25rem; }
+    .note { font-size: 0.9rem; color: #555; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; margin-top: 0.75rem; }
+    #preview { max-width: 100%; max-height: 240px; margin-top: 1rem; display: none; border: 1px solid #ccc; }
+    #status { margin-top: 1rem; }
+    #status.error { color: #b00020; }
+    #result { margin-top: 1rem; padding: 1rem; border: 1px solid #ccc; border-radius: 6px; display: none; }
+    #result h2 { margin-top: 0; }
+    dt { font-weight: bold; margin-top: 0.5rem; }
+    dd { margin: 0; }
+  </style>
+</head>
+<body>
+  <h1>Font Finder</h1>
+  <p>Upload a screenshot of text. You get the font family and an approximate size range.</p>
+  <p class="note">
+    Your image is sent to Google's Gemini API to identify the font. This site's server
+    does not save it. Do not upload images with private information.
+  </p>
+
+  <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp">
+  <br>
+  <button id="detectButton" disabled>Find font</button>
+
+  <img id="preview" alt="Preview of the chosen image">
+  <p id="status" role="status"></p>
+
+  <div id="result">
+    <h2 id="family"></h2>
+    <dl>
+      <dt>Confidence</dt><dd id="confidence"></dd>
+      <dt>Category</dt><dd id="category"></dd>
+      <dt>Approximate size</dt><dd id="size"></dd>
+      <dt>Similar fonts</dt><dd id="alternatives"></dd>
+      <dt>Why</dt><dd id="reasoning"></dd>
+    </dl>
+    <p class="note">Size is a rough range. Screenshots do not carry zoom or screen density information.</p>
+  </div>
+
+  <script>
+    // Change this to the Render URL when the backend is deployed.
+    const API_URL = "http://127.0.0.1:8000";
+
+    const MAX_BYTES = 1024 * 1024; // same limit as the backend (1 MiB)
+    const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+    const TIMEOUT_MS = 90000; // Render's free tier can take 30 to 50 s to wake up
+
+    const fileInput = document.getElementById("fileInput");
+    const detectButton = document.getElementById("detectButton");
+    const preview = document.getElementById("preview");
+    const statusEl = document.getElementById("status");
+    const resultEl = document.getElementById("result");
+
+    function showStatus(message, isError) {
+      statusEl.textContent = message;
+      statusEl.className = isError ? "error" : "";
+    }
+
+    function clearResult() {
+      resultEl.style.display = "none";
+    }
+
+    // Returns an error message, or "" if the file is fine to upload.
+    function checkFile(file) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        return "Only PNG, JPEG and WebP images are accepted.";
+      }
+      if (file.size > MAX_BYTES) {
+        return "File is too large. Maximum is 1 MB.";
+      }
+      return "";
+    }
+
+    fileInput.addEventListener("change", function () {
+      clearResult();
+      showStatus("", false);
+      detectButton.disabled = true;
+      preview.style.display = "none";
+
+      const file = fileInput.files[0];
+      if (!file) {
+        return;
+      }
+      const problem = checkFile(file);
+      if (problem) {
+        showStatus(problem, true);
+        return;
+      }
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = "block";
+      detectButton.disabled = false;
+    });
+
+    // Turns a failed response into a short message. Uses the backend's "detail" text when there is one.
+    async function errorMessageFrom(response) {
+      try {
+        const body = await response.json();
+        if (typeof body.detail === "string") {
+          return body.detail;
+        }
+      } catch (e) {
+        // The body was not JSON, fall through to the default message.
+      }
+      return "Something went wrong (status " + response.status + ").";
+    }
+
+    function showResult(data) {
+      document.getElementById("family").textContent = data.family;
+      document.getElementById("confidence").textContent = data.confidence;
+      document.getElementById("category").textContent = data.category;
+      document.getElementById("size").textContent =
+        data.sizeMinPx + " to " + data.sizeMaxPx + " px (" + data.sizeLabel + ")";
+      document.getElementById("alternatives").textContent = data.alternatives.join(", ");
+      document.getElementById("reasoning").textContent = data.reasoning;
+      resultEl.style.display = "block";
+    }
+
+    detectButton.addEventListener("click", async function () {
+      const file = fileInput.files[0];
+      if (!file) {
+        return;
+      }
+
+      clearResult();
+      detectButton.disabled = true;
+      showStatus("Finding the font. If the server was idle, the first request can take up to a minute.", false);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const controller = new AbortController();
+      const timer = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
+
+      try {
+        const response = await fetch(API_URL + "/detect", {
+          method: "POST",
+          body: formData,
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          showStatus(await errorMessageFrom(response), true);
+          return;
+        }
+        const data = await response.json();
+        showStatus("", false);
+        showResult(data);
+      } catch (e) {
+        if (e.name === "AbortError") {
+          showStatus("The server took too long to answer. Try again.", true);
+        } else {
+          showStatus("Could not reach the server. Check your connection and try again.", true);
+        }
+      } finally {
+        clearTimeout(timer);
+        detectButton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
