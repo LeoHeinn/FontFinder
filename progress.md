@@ -222,7 +222,7 @@ One section per finished task, newest last.
 - Idea for later (Leo, not done yet): show the category first and the family as a best guess.
 
 **503 pattern**
-- Gemini often returns 503 on the first 1 or 2 tries and answers on the next. Testing rule from now on: retry an image at least 3 times on 503 before calling it failed.
+- Gemini often returns 503 on the first 1 or 2 tries and answers on the next. Testing rule at the time: retry an image at least 3 times on 503 before calling it failed. Dropped after T4b, because the new models gave no 503.
 
 **Checks run**
 - `python3 -m py_compile backend/main.py`: ok. `python3 -m pytest -q`: 44 passed.
@@ -233,3 +233,41 @@ One section per finished task, newest last.
 
 **To resume**
 - One final run of all 5 samples with the new prompt, up to 3 tries per image on 503. Then fill in the table and close T4.
+
+## T4b Gemini model fallback (done)
+
+**Files changed**
+- `backend/main.py`, `backend/tests/test_gemini_fallback.py` (new)
+- `TASKS.md`, `progress.md`, `ISSUES.md`, `GITREPORT.md`, plus `DECISIONS.md` and `AGENTS.md` (both gitignored)
+
+**What was done**
+- Replaced `MODEL`, `GEMINI_URL` and `GEMINI_TIMEOUT_SECONDS` with one list `MODELS` of (name, timeout): `gemini-3-flash-preview` 40 s, `gemini-3.5-flash-lite` 20 s, `gemini-3.1-flash-lite` 20 s. Total 80 s, under the page's 90 s.
+- `call_gemini()` loops over `MODELS`. A 503, 429, timeout or other 5xx moves on to the next model. A 400, 401, 403, 404 or network error stops at once with 502. If all three fail, the user gets the last error, so the messages are the same as before.
+- One log line per attempt with uvicorn's logger (model name and status only, never the image or the key), e.g. `gemini-3-flash-preview: timed out after 40 s, trying next model`.
+- Prompt, parser, `detect()` and the response schema are unchanged.
+
+**Checks run**
+- `python3 -m py_compile backend/main.py backend/tests/test_gemini_fallback.py`: ok.
+- `python3 -m pytest -q`: 61 passed (44 old, 17 new). New tests use a fake `requests.post` and check the order of models and timeouts, each fallback reason, the last error when all fail, no fallback on 400/401/403/404 and network errors, no call without a key, and that the timeouts add up to under 90 s.
+- Real run, 2026-10-23, new prompt, up to 3 tries per image on 503 (none were needed):
+
+| Image | Answer | Family right | Category right | Confidence | Model that answered | Time |
+|---|---|---|---|---|---|---|
+| Inter | Inter | yes | yes | high | `gemini-3.5-flash-lite` (first model timed out at 40 s) | 41.5 s |
+| Playfair Display | Playfair Display | yes | yes | high | `gemini-3-flash-preview` | 6.6 s |
+| JetBrains Mono | DM Mono | no | yes | high | `gemini-3-flash-preview` | 14.8 s |
+| Dancing Script | Great Vibes | no | yes | high | `gemini-3-flash-preview` | 5.2 s |
+| Bungee | Russo One (Bungee in alternatives) | no | no (sans-serif) | high | `gemini-3-flash-preview` | 13.6 s |
+
+- Family 2 of 5, category 4 of 5. No 503 at all, against most calls failing with `gemini-3.8-flash` in T4. The fallback was used for real once (Inter).
+- Calls were faster: 5 to 15 s on the first model, against 15 to 30 s before.
+
+**Not verified**
+- One run only. Fewer 503s may be the new model or just a quiet day.
+- That the tests can fail: no deliberate break of the code was tried.
+- Size accuracy (true sizes unknown).
+- Behaviour on Render.
+
+**Notes**
+- Inter needed 41.5 s, close to the edge: a page waiting 90 s still has room, but a slow first model costs 40 s before the backup starts.
+- Confidence is still always "high". Accuracy of the family name is still poor, so T5b (lead with category) still makes sense.

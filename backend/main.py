@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import os
 from typing import List, Literal, Optional
 
@@ -12,13 +13,17 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 load_dotenv()
 
-MODEL = "gemini-3.8-flash"
-GEMINI_URL = (
-    "https://generativelanguage.googleapis.com/v1beta/models/"
-    + MODEL
-    + ":generateContent"
-)
-GEMINI_TIMEOUT_SECONDS = 60
+# Tried in order, as (model name, timeout in seconds). The next model is used only when
+# one is busy, rate limited, slow or broken. Timeouts add up to 80 s, under the 90 s the frontend waits.
+MODELS = [
+    ("gemini-3-flash-preview", 40),
+    ("gemini-3.5-flash-lite", 20),
+    ("gemini-3.1-flash-lite", 20),
+]
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/"
+
+# uvicorn prints this logger's INFO lines. Only model names and status codes are logged, never images or the key.
+logger = logging.getLogger("uvicorn.error")
 # 1 MiB. Starlette keeps uploads in memory up to 1 MiB and only then writes them
 # to a temp file, so staying at or under this limit keeps images off disk.
 MAX_UPLOAD_BYTES = 1024 * 1024
@@ -107,7 +112,8 @@ def sniff_image_type(data: bytes) -> Optional[str]:
 
 
 def call_gemini(image_bytes: bytes, mime_type: str) -> str:
-    """Send the image to Gemini and return the raw model text. Raises HTTPException on failure."""
+    """Send the image to Gemini and return the raw model text. Tries each model in MODELS in turn.
+    Raises HTTPException on failure."""
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Server is missing its API key.")
@@ -128,29 +134,49 @@ def call_gemini(image_bytes: bytes, mime_type: str) -> str:
         ]
     }
 
-    try:
-        response = requests.post(
-            GEMINI_URL,
-            json=payload,
-            headers={"x-goog-api-key": api_key},
-            timeout=GEMINI_TIMEOUT_SECONDS,
-        )
-    except requests.Timeout:
-        raise HTTPException(status_code=504, detail="The font service timed out. Try again.")
-    except requests.RequestException:
-        raise HTTPException(status_code=502, detail="Could not reach the font service.")
+    # If every model fails, the user gets the error from the last one.
+    last_error = HTTPException(status_code=502, detail="Could not reach the font service.")
 
-    if response.status_code == 429:
-        raise HTTPException(status_code=429, detail="Too many requests. Try again in a minute.")
-    if response.status_code == 503:
-        raise HTTPException(status_code=503, detail="The font service is busy. Try again soon.")
-    if response.status_code != 200:
-        raise HTTPException(status_code=502, detail="The font service returned an error.")
+    for model, timeout in MODELS:
+        try:
+            response = requests.post(
+                GEMINI_BASE_URL + model + ":generateContent",
+                json=payload,
+                headers={"x-goog-api-key": api_key},
+                timeout=timeout,
+            )
+        except requests.Timeout:
+            logger.info("%s: timed out after %s s, trying next model", model, timeout)
+            last_error = HTTPException(status_code=504, detail="The font service timed out. Try again.")
+            continue
+        except requests.RequestException:
+            # A network problem hits every model the same way, so stop here.
+            raise HTTPException(status_code=502, detail="Could not reach the font service.")
 
-    try:
-        return response.json()["candidates"][0]["content"]["parts"][0]["text"]
-    except (ValueError, KeyError, IndexError, TypeError):
-        raise HTTPException(status_code=502, detail="The font service returned an unexpected reply.")
+        if response.status_code == 429:
+            logger.info("%s: 429 rate limited, trying next model", model)
+            last_error = HTTPException(status_code=429, detail="Too many requests. Try again in a minute.")
+            continue
+        if response.status_code == 503:
+            logger.info("%s: 503 busy, trying next model", model)
+            last_error = HTTPException(status_code=503, detail="The font service is busy. Try again soon.")
+            continue
+        if response.status_code >= 500:
+            logger.info("%s: %s server error, trying next model", model, response.status_code)
+            last_error = HTTPException(status_code=502, detail="The font service returned an error.")
+            continue
+        if response.status_code != 200:
+            # 400, 401, 403, 404: our request or key is the problem, and every model would refuse it.
+            logger.info("%s: %s, not trying other models", model, response.status_code)
+            raise HTTPException(status_code=502, detail="The font service returned an error.")
+
+        logger.info("%s: answered", model)
+        try:
+            return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+        except (ValueError, KeyError, IndexError, TypeError):
+            raise HTTPException(status_code=502, detail="The font service returned an unexpected reply.")
+
+    raise last_error
 
 
 def parse_gemini_response(raw_text: str) -> DetectResult:

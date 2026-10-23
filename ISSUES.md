@@ -45,7 +45,7 @@ Every bug, error or issue found in the project. One entry per issue, status in t
 - Tests in `backend/tests/test_detect.py`: chunked upload without `Content-Length` returns 413, a just-under-limit image never rolls to disk, and the middleware stops reading after the limit and passes small bodies through.
 - `python3 -m pytest -q`: 44 passed.
 
-### T4: real Gemini calls fail with 503 or 504 (open)
+### T4: real Gemini calls fail with 503 or 504 (mitigated in T4b)
 
 **Where**
 - `backend/main.py` `call_gemini()`, run locally with uvicorn on 2026-10-20, one request per file in `samples/`.
@@ -63,7 +63,8 @@ Every bug, error or issue found in the project. One entry per issue, status in t
 - 503s still come often and in bursts.
 
 **Status**
-- Timeout raised to 60 s on `t4b-prompt-timeout` (uncommitted). 503s remain, they come from Gemini and can only be retried later.
+- Timeout raised to 60 s in commit `4b9b9f0`.
+- T4b (2026-10-23): switched to `gemini-3-flash-preview` with two Flash-Lite backups, timeouts 40/20/20 s. First real run: 5 of 5 images answered on the first try, no 503. Inter's first model timed out at 40 s and the first backup answered. One run only, so not called fixed yet.
 
 ### Gemini often names the wrong font, always with "high" confidence (open)
 
@@ -81,3 +82,4 @@ Every bug, error or issue found in the project. One entry per issue, status in t
 **Status**
 - Open. New prompt on `t4b-prompt-timeout`. First results: Playfair Display right, JetBrains Mono wrong (OCR-B), one more wrong family. Confidence still "high" on wrong answers.
 - Category is right 7 of 8 times across both prompts, so the category is more trustworthy than the family name.
+- T4b new models (one run): family right 2 of 5 (Inter, Playfair Display), category right 4 of 5 (Bungee called sans-serif). Confidence still "high" on every answer, including the 3 wrong ones. Still open.
