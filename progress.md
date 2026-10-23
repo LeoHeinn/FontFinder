@@ -176,3 +176,60 @@ One section per finished task, newest last.
 - CORS from a real origin: the page was never sent to the real backend. `ALLOWED_ORIGINS` needs the GitHub Pages URL at T6.
 - Looks only checked at desktop size in one browser. Not checked on a phone.
 - GitHub Pages hosting and Render cold start timing.
+
+## T4 retry: timeout and prompt (in progress, branch `t4b-prompt-timeout`)
+
+**Files changed so far (uncommitted)**
+- `backend/main.py`: `GEMINI_TIMEOUT_SECONDS` 30 to 60, and a new `PROMPT`
+- `AGENTS.md`: prompt block updated to match `main.py` (checked identical with a script)
+- `progress.md`, `ISSUES.md`, `DECISIONS.md`
+
+**Real results with the old prompt (2026-10-21 and 2026-10-22, 30 s then 60 s timeout)**
+
+| Image | True font | Answer | Family right | Category right | Confidence |
+|---|---|---|---|---|---|
+| Inter | Inter | Helvetica | no (close) | yes | high |
+| JetBrains Mono | JetBrains Mono | Letter Gothic | no | yes | high |
+| Bungee, run 1 | Bungee | Bungee | yes | yes | high |
+| Bungee, run 2 (via `index.html`) | Bungee | Russo One | no | no (sans-serif) | high |
+| Dancing Script | Dancing Script | Snell Roundhand | no | yes | high |
+| Playfair Display | Playfair Display | no answer yet (503 and 504 only) | | | |
+
+- 1 of 5 answers correct, category right 4 of 5, every answer "high". Every wrong answer was a classic or system font.
+- Successful calls took 15 to 30 s (Bungee once 29.6 s). Several calls timed out at exactly 30 s.
+
+**Timeout step**
+- Raised `GEMINI_TIMEOUT_SECONDS` to 60. With 60: Dancing Script and Playfair gave fast 503s, then Dancing Script alone gave 200 in 15.3 s.
+- So this run does not prove 60 s helps (15 s would also pass at 30 s). Kept 60 as a margin because real calls already reach 30 s, and it still fits under the frontend's 90 s.
+
+**Prompt step**
+- Removed "prefer well-known names", added a letterform checklist, said Google Fonts and modern UI and coding fonts are in scope, limited "high" confidence to clear matches, and asked the reasoning to separate the pick from the alternatives. Same 8 keys and allowed values, so the parser is untouched. Sample font names were not put in the prompt on purpose.
+- Claude's test run: Inter 503 (9.1 s), Playfair 503 (2.4 s), then stopped after two 503s in a row. Stopping on one 503 per image made Gemini look worse than it is.
+- Leo's runs through `index.html` (2026-10-22, new prompt). A 503 was retried by hand:
+
+| Image | Answer | Family right | Category right | Confidence | Tries |
+|---|---|---|---|---|---|
+| Playfair Display | Playfair Display | yes | yes | high | 2 (503, then 200) |
+| JetBrains Mono | OCR-B | no | yes | high | 3 (503, 503, then 200) |
+| not recorded | wrong family | no | yes | not recorded | 2 (503, then 200) |
+
+- Confidence was still "high" on a wrong answer, so the new confidence rule did not work.
+
+**Category accuracy (all successful answers, both prompts)**
+- 7 of 8 correct. The one miss was Bungee as "sans-serif" (display and sans-serif overlap).
+- Font family: 2 of 8 correct.
+- Small sample, and each sample is a clear textbook example of its category. Real screenshots will likely be harder (not measured).
+- Idea for later (Leo, not done yet): show the category first and the family as a best guess.
+
+**503 pattern**
+- Gemini often returns 503 on the first 1 or 2 tries and answers on the next. Testing rule from now on: retry an image at least 3 times on 503 before calling it failed.
+
+**Checks run**
+- `python3 -m py_compile backend/main.py`: ok. `python3 -m pytest -q`: 44 passed.
+
+**Not verified**
+- Whether the new prompt is better overall. Only 3 answers so far with it, from different images than the old run.
+- Size accuracy (true sizes of the samples are unknown).
+
+**To resume**
+- One final run of all 5 samples with the new prompt, up to 3 tries per image on 503. Then fill in the table and close T4.

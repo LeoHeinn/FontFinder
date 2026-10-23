@@ -58,5 +58,26 @@ Every bug, error or issue found in the project. One entry per issue, status in t
 **Cause**
 - Not known. The 503s come from Gemini, so likely high demand. The 504s are unexplained (Gemini hanging or the network). The 30 s timeout is not the cause. Nothing was checked beyond status codes.
 
+**Update 2026-10-21 and 2026-10-22**
+- Gemini answered some calls in 15 to 30 s, and several others hit the 30 s limit exactly (504 at 30.1 s). So the 30 s timeout did cut off slow calls. The statement above that it is not the cause was based only on one fast 503.
+- 503s still come often and in bursts.
+
 **Status**
-- Open. T4 paused. Retry one image later. 45 s timeout was tried and reverted.
+- Timeout raised to 60 s on `t4b-prompt-timeout` (uncommitted). 503s remain, they come from Gemini and can only be retried later.
+
+### Gemini often names the wrong font, always with "high" confidence (open)
+
+**Where**
+- The answer from Gemini, shown by `/detect` and `index.html`. Prompt in `backend/main.py` `PROMPT`.
+
+**Effect**
+- With the old prompt, 1 of 5 real answers named the right family (see `progress.md`, T4 retry). Category was right 4 of 5.
+- Every answer said "high" confidence, so users cannot tell a good answer from a bad one.
+- The same Bungee image gave two different answers (Bungee, then Russo One).
+
+**Cause**
+- Not proven. Suspect: the prompt line "prefer well-known names", since every wrong answer was a classic or system font. Also likely: a general model is not a font-matching tool, and answers vary between runs.
+
+**Status**
+- Open. New prompt on `t4b-prompt-timeout`. First results: Playfair Display right, JetBrains Mono wrong (OCR-B), one more wrong family. Confidence still "high" on wrong answers.
+- Category is right 7 of 8 times across both prompts, so the category is more trustworthy than the family name.

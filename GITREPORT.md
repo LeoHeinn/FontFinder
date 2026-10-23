@@ -17,9 +17,10 @@ Add the row in the same commit it describes (merges included). A commit cannot k
 
 | Branch | Task | Points to | State |
 |---|---|---|---|
-| `main` | T1 to T3b, T4 notes | `10a8c35` T4 | 9 commits ahead of GitHub (`origin/main` is at `2e5afde`). Not pushed. |
-| `t5-frontend` | T5 | `d665250` T5 | 2 commits ahead of `main` (`f790722`, `d665250`). Not merged into `main` yet. |
-| `t4-real-check` | T4 | `10a8c35` T4 | Fully merged into `main`. T4 is paused (Gemini 503/504 and wrong fonts). Retry on this branch or a new one. |
+| `main` | T1 to T5, T4 notes | `e93f1d8` T5 | 12 commits ahead of GitHub (`origin/main` is at `2e5afde`). Not pushed. |
+| `t4b-prompt-timeout` | T4 | latest row in the log | T4 retry: 60 s timeout and new prompt. In use. Not merged into `main` yet. |
+| `t5-frontend` | T5 | `e93f1d8` T5 | Fully merged into `main` (fast-forward). Safe to delete. |
+| `t4-real-check` | T4 | `10a8c35` T4 | Fully merged into `main`. Replaced by `t4b-prompt-timeout`. Safe to delete. |
 | `fix-upload-limit` | T3b | `6b22f2d` T3b | Fully merged into `main`. Safe to delete. |
 | `t3-test` | T2, T3 | `2e5afde` | Fully merged into `main`. Safe to delete. |
 | `claude` | T1 | `5f0adf4` | Fully merged into `main`. Safe to delete. |
@@ -48,4 +49,6 @@ Add the row in the same commit it describes (merges included). A commit cannot k
 | 2026-10-20 | `10a8c35` | t4-real-check | T4 | Update documantation for T4 Issue: Continue to T5 | Docs only. Fixed this report's last row and branch table, added the T4 failure entry to `ISSUES.md` (Gemini 503/504), a "T4 paused" section in `progress.md`, and the T4 and T6 notes in `TASKS.md`. Then `main` was moved up to here. |
 | 2026-10-20 | `f790722` | t5-frontend | T5 | Update TASKS.md and progress.md for T5: Add `index.html` task details and document implementation progress | Docs only. T5 moved to Done in `TASKS.md` and a T5 section added to `progress.md`. The page itself came in the next commit. |
 | 2026-10-22 | `d665250` | t5-frontend | T5 | T5: Front End Add index.html for font detection functionality with image upload and API integration | New `index.html` at the repo root: file picker with preview, type and 1 MiB check before upload, loading message, result card, error messages. Checked with a stubbed `fetch` and by hand against the real backend. |
+| 2026-10-22 | `e93f1d8` | t5-frontend | T5 | T5: Front End Update GITREPORT.md | Report only. Rows for `10a8c35`, `f790722`, `d665250` and a new branch table. Then `t5-frontend` was merged into `main` (fast-forward, no merge commit). |
+| 2026-10-22 | `(pending)` | t4b-prompt-timeout | T4 | T4: Raise Gemini timeout to 60 s and rewrite the prompt for accuracy | `backend/main.py`: timeout 30 to 60 s, new prompt (no "prefer well-known names", letterform checklist, Google Fonts in scope, stricter "high" confidence). Same keys, parser untouched. `progress.md` T4 retry section: old-prompt accuracy table, first new-prompt results (Playfair right, JetBrains Mono wrong), category right 7 of 8, 503 pattern and the 3-try test rule. `ISSUES.md`: timeout update and new wrong-font issue. `TASKS.md`: T7 must list the Gemini API limitations. |
 

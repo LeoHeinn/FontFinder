@@ -18,6 +18,7 @@ T5
 
 ### T7 Update README
 - Python backend setup, `/detect` request and response shape, limitations, privacy note
+- Limitations section must cover the Gemini API: frequent 503 "busy" (try again), free-tier quota, 15 to 30 s per call, font family often wrong while category is usually right, confidence not reliable, size is a rough range
 
 ## Done
 - Gemini API key created on the free tier

@@ -18,21 +18,23 @@ GEMINI_URL = (
     + MODEL
     + ":generateContent"
 )
-GEMINI_TIMEOUT_SECONDS = 30
+GEMINI_TIMEOUT_SECONDS = 60
 # 1 MiB. Starlette keeps uploads in memory up to 1 MiB and only then writes them
 # to a temp file, so staying at or under this limit keeps images off disk.
 MAX_UPLOAD_BYTES = 1024 * 1024
 TOO_LARGE_DETAIL = "File is too large. Maximum is 1 MB."
 
 PROMPT = """You are a typography expert. Identify the font in this screenshot of text.
+Before deciding, study the distinctive letterforms: the shapes of a, g, R, Q, t, y and the digits, the terminals, the x-height, the stroke contrast and the spacing.
+Consider the full range of fonts, including Google Fonts and modern UI and coding fonts, not only classic or system fonts. Do not answer Helvetica, Arial or Times unless the letterforms really match them.
 Respond with ONLY a JSON object, no markdown, with these keys:
-"family" (best-match font family name, prefer well-known names),
-"confidence" ("high" | "medium" | "low"),
+"family" (best-match font family name),
+"confidence" ("high" | "medium" | "low"), use "high" only when distinctive letterforms clearly match one family, otherwise "medium" or "low",
 "category" ("serif" | "sans-serif" | "monospace" | "script" | "display"),
-"alternatives" (array of 2-3 similar font family names),
+"alternatives" (array of 2-3 other font family names that could also match),
 "sizeMinPx" (number), "sizeMaxPx" (number) - approximate rendered size of the main text in CSS px based on the image,
 "sizeLabel" (e.g. "body text", "heading", "caption"),
-"reasoning" (one or two sentences on the letterform features you used).
+"reasoning" (one or two sentences naming the letterforms that set this font apart from the alternatives).
 If there is no readable text, set family to "Unknown" and confidence to "low"."""
 
 
