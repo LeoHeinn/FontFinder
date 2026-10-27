@@ -8,11 +8,6 @@ None.
 
 ## Next
 
-### T5c Result actions in `index.html`
-- Copy button next to the font name
-- "Search on Google Fonts" link built from the family name (encoded, and labelled as a search, since not every font is on Google Fonts)
-- Alternatives as clickable chips that link the same way
-
 ### T5d Sample images (optional experiment)
 - Sample buttons so a visitor without a screenshot can try it. Leo's own images only. Each click uses Gemini quota
 
@@ -39,3 +34,4 @@ None.
 - T4 Real image check (see `progress.md`, `ISSUES.md`): pipeline works end to end on real images. Category right 7 of 8, family 2 of 8, confidence always "high", frequent Gemini 503s. Timeout raised to 60 s and prompt rewritten (commit `4b9b9f0`). No separate stylized-lettering line needed. The full new-prompt comparison moves to T4b, since the model changes
 - T4b Gemini model fallback (see `progress.md`, `ISSUES.md`): `gemini-3-flash-preview` 40 s, then `gemini-3.5-flash-lite` 20 s, then `gemini-3.1-flash-lite` 20 s. 61 tests pass. Real run: 5 of 5 answered, no 503, family 2 of 5, category 4 of 5
 - T5b Layout revamp (see `progress.md`): category first with the family as a best guess, paste and drag and drop through one `handleFile()`, "Working, N s" progress, "Try another image" reset, dark mode. Checked with a stubbed `fetch` and synthetic events, not with a real paste, drag or Gemini call
+- T5c Result actions (see `progress.md`): the best-guess name links to a Google Fonts search, alternatives as link chips, all links built by one encoding function. No link for "Unknown". Copy button built, then removed (Leo's call). Checked with a stubbed `fetch`; the Google Fonts URL format checked for real

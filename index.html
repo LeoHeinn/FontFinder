@@ -54,6 +54,17 @@
     #result .label { margin: 0; font-size: 0.9rem; color: var(--muted); }
     #result h2 { margin: 0 0 0.5rem; font-size: 2rem; }
     #result p { margin: 0.25rem 0; }
+    #result a { color: var(--accent); }
+    /* The font name is the Google Fonts search link. Without an href (font "Unknown") it looks like plain text. */
+    #familyLink[href] { background: var(--zone); border-radius: 4px; padding: 0.05rem 0.35rem; }
+    #familyLink:not([href]) { color: inherit; }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.25rem 0 0.5rem; }
+    .chip {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.15rem 0.7rem;
+      text-decoration: none;
+    }
     dt { font-weight: bold; margin-top: 0.5rem; }
     dd { margin: 0; }
     footer { margin-top: 2rem; }
@@ -77,8 +88,12 @@
   <div id="result">
     <p class="label">Font category</p>
     <h2 id="category"></h2>
-    <p>Best guess: <strong id="family"></strong></p>
-    <p>Could also be: <span id="alternatives"></span></p>
+    <p>
+      Best guess:
+      <a id="familyLink" target="_blank" rel="noopener noreferrer" title="Search Google Fonts for this name"><strong id="family"></strong></a>
+    </p>
+    <p>Could also be:</p>
+    <div id="alternatives" class="chips"></div>
     <dl>
       <dt>Confidence</dt><dd id="confidence"></dd>
       <dt>Approximate size</dt><dd id="size"></dd>
@@ -115,6 +130,8 @@
     const preview = document.getElementById("preview");
     const statusEl = document.getElementById("status");
     const resultEl = document.getElementById("result");
+    const familyLink = document.getElementById("familyLink");
+    const alternativesEl = document.getElementById("alternatives");
 
     let selectedFile = null; // the file that "Find font" will send, from the picker, a drop or a paste
     let previewUrl = null;
@@ -234,7 +251,7 @@
         const seconds = Math.round((Date.now() - startedAt) / 1000);
         let message = "Working, " + seconds + " s.";
         if (seconds >= SLOW_AFTER_SECONDS) {
-          message += " The server may be busy";
+          message += " The server may be busy.";
         }
         showStatus(message, false);
       }
@@ -260,10 +277,40 @@
       return "Something went wrong (status " + response.status + ").";
     }
 
+    // Only ever builds a Google Fonts search. encodeURIComponent turns spaces, "&" and "<" into
+    // safe characters, so a name from the model cannot change where the link goes.
+    function googleFontsSearchUrl(name) {
+      return "https://fonts.google.com/?query=" + encodeURIComponent(name);
+    }
+
+    function makeChip(name) {
+      const chip = document.createElement("a");
+      chip.className = "chip";
+      chip.textContent = name;
+      chip.href = googleFontsSearchUrl(name);
+      chip.target = "_blank";
+      chip.rel = "noopener noreferrer";
+      chip.title = "Search on Google Fonts";
+      return chip;
+    }
+
     function showResult(data) {
       document.getElementById("category").textContent = CATEGORY_LABELS[data.category] || data.category;
       document.getElementById("family").textContent = data.family;
-      document.getElementById("alternatives").textContent = data.alternatives.join(", ");
+
+      // The prompt asks for "Unknown" when there is no readable text. Searching for that is pointless.
+      const known = data.family.trim().toLowerCase() !== "unknown";
+      if (known) {
+        familyLink.href = googleFontsSearchUrl(data.family);
+      } else {
+        familyLink.removeAttribute("href"); // a link without href is plain text
+      }
+
+      alternativesEl.replaceChildren(); // remove chips from the previous result
+      for (const name of data.alternatives) {
+        alternativesEl.appendChild(makeChip(name));
+      }
+
       document.getElementById("confidence").textContent = data.confidence;
       document.getElementById("size").textContent =
         data.sizeMinPx + " to " + data.sizeMaxPx + " px (" + data.sizeLabel + ")";

@@ -282,7 +282,7 @@ One section per finished task, newest last.
 - Result card leads with the category ("Serif", from a small `CATEGORY_LABELS` map, unknown values shown as they are), then "Best guess: <family>" and "Could also be: <alternatives>". Confidence and size stay in the list.
 - Follow-up (Leo's call, same task): removed the "Why" field (the model's reasoning), the intro line and the accuracy note under the card. The privacy note moved to a footer at the bottom of the page. The backend still sends `reasoning`, the page just does not show it.
 - Paste (Ctrl or Cmd + V anywhere) and drag and drop (anywhere on the page, so a missed drop does not open the image in the browser). Picker, paste and drop all call `handleFile()`, which runs the existing type and 1 MiB checks. The click handler sends `selectedFile` instead of reading the picker.
-- Progress text "Working, 12 s." updated every second, with "The server may be busy or waking up." from 20 s. Stopped in the `finally` block, so it ends on success, error and timeout.
+- Progress text "Working, 12 s." updated every second, with a "may be busy" hint from 20 s (Leo shortened it to "The server may be busy." before committing). Stopped in the `finally` block, so it ends on success, error and timeout.
 - While a request runs, the picker, paste and drop are ignored (`busy` flag), so the shown result always matches the preview.
 - "Try another image" button after a result or an error. It clears the file, picker, preview, status and result. Old preview URLs are freed with `URL.revokeObjectURL`.
 - Dark mode: colours moved into CSS variables, overridden in one `prefers-color-scheme: dark` block.
@@ -304,4 +304,42 @@ One section per finished task, newest last.
 - Real drag from Finder and real clipboard paste of a screenshot (only synthetic events). Safari and Firefox. No real Gemini request through the new page.
 
 **Notes**
+- Leo's own edits before the commit: drop-zone text shortened to "paste it" (no shortcut shown), preview moved below the status line, and "Do not upload images with private information." removed from the privacy note. All intentional.
 - After a paste or drop the file picker shows "No file chosen", because it was cleared on purpose. The preview shows which image is picked.
+
+## T5c Result actions (done)
+
+**Files changed**
+- `index.html`
+- `TASKS.md`, `progress.md`, `GITREPORT.md`, plus `DECISIONS.md` (gitignored)
+
+**What was done**
+- A "Copy" button next to the font name was built and tested, then removed (Leo's call). The name is a link now, so the button was extra clutter.
+- The best-guess font name itself is the Google Fonts search link (highlighted, tooltip "Search Google Fonts for this name"), opening in a new tab with `rel="noopener noreferrer"`. A first version had a separate "Search on Google Fonts" text link; Leo asked to merge it into the name.
+- Alternatives are now chips (links) that search Google Fonts the same way. Built with `createElement` and `textContent`, and emptied with `replaceChildren()` before each new result.
+- Every link comes from one function, `googleFontsSearchUrl()`: a fixed `https://fonts.google.com/?query=` plus `encodeURIComponent(name)`, so a name from the model cannot change where a link goes.
+- When the family is "Unknown" (the prompt's answer for no readable text), the name loses its `href`, so it shows as plain text.
+- The T5b full stop in "The server may be busy." was fixed by Leo on this branch.
+- After removing Copy: no `copyButton`, `shownFamily` or clipboard code left (checked with grep); the line reads "Best guess: Russo One" with the link; "Unknown" has no link; reset works; no console errors. 381 to 369 lines.
+- 322 to 381 lines.
+
+**Checks run**
+- Served a copy from the scratchpad and tested in the built-in browser with a stubbed `fetch`:
+  - family `Playfair & <b>Display</b>`: shown as text, link `?query=Playfair%20%26%20%3Cb%3EDisplay%3C%2Fb%3E`
+  - an alternative named `javascript:alert(1)` became `https://fonts.google.com/?query=javascript%3Aalert(1)`, a harmless search
+  - every link starts with `https://fonts.google.com/?query=`, has `target="_blank"` and `rel="noopener noreferrer"`
+  - 3 chips for 3 alternatives; a second result replaced them (2 chips), not added to them
+  - (before the Copy button was removed) Copy with a stubbed clipboard: "Copied", clipboard got "Inter", back to "Copy" after 2 s. Rejected write and missing clipboard API: "Copy failed"
+  - "Unknown" removes the link; the next real result brings it back
+  - after merging the link into the name: name "Russo One" links to `?query=Russo%20One`, no "Search on Google Fonts" text left; "Unknown" has no `href` and plain text colour
+  - reset still clears the card; no console errors
+  - screenshots in light mode, dark mode and at 375 px (chips wrap, no sideways scroll)
+- Opened `https://fonts.google.com/?query=Playfair%20Display` in the built-in browser: Google Fonts shows "2 of 1,951 families" with Playfair Display first, so the URL format works.
+- `python3 -m pytest -q`: 61 passed (backend untouched).
+
+**Not verified**
+- Safari and Firefox, a real Gemini request through the page.
+- On phones the tooltip does not show, so nothing says the name is a search; the link colour is the only hint.
+
+**Notes**
+- With "Unknown" and no alternatives, "Could also be:" is shown with nothing under it.
