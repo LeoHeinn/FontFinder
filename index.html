@@ -5,52 +5,90 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Font Finder</title>
   <style>
+    /* Colours in one place, so dark mode only has to change these. */
+    :root {
+      color-scheme: light dark;
+      --text: #222;
+      --background: #fff;
+      --muted: #555;
+      --border: #ccc;
+      --error: #b00020;
+      --accent: #2563eb;
+      --zone: #f6f7f9;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --text: #e6e6e6;
+        --background: #16181b;
+        --muted: #a3a3a3;
+        --border: #444;
+        --error: #ff6b6b;
+        --accent: #7aa2ff;
+        --zone: #1f2226;
+      }
+    }
     body {
       font-family: system-ui, sans-serif;
       max-width: 640px;
       margin: 2rem auto;
       padding: 0 1rem;
       line-height: 1.5;
-      color: #222;
+      color: var(--text);
+      background: var(--background);
     }
     h1 { margin-bottom: 0.25rem; }
-    .note { font-size: 0.9rem; color: #555; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; margin-top: 0.75rem; }
-    #preview { max-width: 100%; max-height: 240px; margin-top: 1rem; display: none; border: 1px solid #ccc; }
+    .note { font-size: 0.9rem; color: var(--muted); }
+    button { padding: 0.5rem 1rem; font-size: 1rem; margin-top: 0.75rem; margin-right: 0.5rem; }
+    #dropZone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      background: var(--zone);
+    }
+    #dropZone.dragging { border-color: var(--accent); }
+    #dropZone p { margin-top: 0; }
+    #preview { max-width: 100%; max-height: 240px; margin-top: 1rem; display: none; border: 1px solid var(--border); }
     #status { margin-top: 1rem; }
-    #status.error { color: #b00020; }
-    #result { margin-top: 1rem; padding: 1rem; border: 1px solid #ccc; border-radius: 6px; display: none; }
-    #result h2 { margin-top: 0; }
+    #status.error { color: var(--error); }
+    #result { margin-top: 1rem; padding: 1rem; border: 1px solid var(--border); border-radius: 6px; display: none; }
+    #result .label { margin: 0; font-size: 0.9rem; color: var(--muted); }
+    #result h2 { margin: 0 0 0.5rem; font-size: 2rem; }
+    #result p { margin: 0.25rem 0; }
     dt { font-weight: bold; margin-top: 0.5rem; }
     dd { margin: 0; }
+    footer { margin-top: 2rem; }
   </style>
 </head>
 <body>
   <h1>Font Finder</h1>
-  <p>Upload a screenshot of text. You get the font family and an approximate size range.</p>
-  <p class="note">
-    Your image is sent to Google's Gemini API to identify the font. This site's server
-    does not save it. Do not upload images with private information.
-  </p>
 
-  <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp">
-  <br>
+  <div id="dropZone">
+    <p>Drop a screenshot here, paste it, or choose a file.</p>
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp">
+    <p class="note">PNG, JPEG or WebP, up to 1 MB.</p>
+  </div>
+
   <button id="detectButton" disabled>Find font</button>
+  <button id="resetButton" type="button" hidden>Try another image</button>
 
-  <img id="preview" alt="Preview of the chosen image">
   <p id="status" role="status"></p>
+  <img id="preview" alt="Preview of the chosen image">
 
   <div id="result">
-    <h2 id="family"></h2>
+    <p class="label">Font category</p>
+    <h2 id="category"></h2>
+    <p>Best guess: <strong id="family"></strong></p>
+    <p>Could also be: <span id="alternatives"></span></p>
     <dl>
       <dt>Confidence</dt><dd id="confidence"></dd>
-      <dt>Category</dt><dd id="category"></dd>
       <dt>Approximate size</dt><dd id="size"></dd>
-      <dt>Similar fonts</dt><dd id="alternatives"></dd>
-      <dt>Why</dt><dd id="reasoning"></dd>
     </dl>
-    <p class="note">Size is a rough range. Screenshots do not carry zoom or screen density information.</p>
   </div>
+
+  <footer class="note">
+    Your image is sent to Google's Gemini API to identify the font. This site's server
+    does not save it.
+  </footer>
 
   <script>
     // Change this to the Render URL when the backend is deployed.
@@ -59,12 +97,29 @@
     const MAX_BYTES = 1024 * 1024; // same limit as the backend (1 MiB)
     const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
     const TIMEOUT_MS = 90000; // Render's free tier can take 30 to 50 s to wake up
+    const SLOW_AFTER_SECONDS = 20; // after this, tell the user the server may be busy
+
+    // The backend sends these values. Anything else is shown as it is.
+    const CATEGORY_LABELS = {
+      "serif": "Serif",
+      "sans-serif": "Sans-serif",
+      "monospace": "Monospace",
+      "script": "Script",
+      "display": "Display",
+    };
 
     const fileInput = document.getElementById("fileInput");
+    const dropZone = document.getElementById("dropZone");
     const detectButton = document.getElementById("detectButton");
+    const resetButton = document.getElementById("resetButton");
     const preview = document.getElementById("preview");
     const statusEl = document.getElementById("status");
     const resultEl = document.getElementById("result");
+
+    let selectedFile = null; // the file that "Find font" will send, from the picker, a drop or a paste
+    let previewUrl = null;
+    let progressTimer = null;
+    let busy = false; // true while a request is running
 
     function showStatus(message, isError) {
       statusEl.textContent = message;
@@ -86,13 +141,35 @@
       return "";
     }
 
-    fileInput.addEventListener("change", function () {
+    function setPreview(file) {
+      // Free the old preview, or the browser keeps it in memory until the page closes.
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        previewUrl = null;
+      }
+      if (file) {
+        previewUrl = URL.createObjectURL(file);
+        preview.src = previewUrl;
+        preview.style.display = "block";
+      } else {
+        preview.removeAttribute("src");
+        preview.style.display = "none";
+      }
+    }
+
+    // Every way of choosing an image ends here, so the same checks apply to all of them.
+    // Passing null clears the page.
+    function handleFile(file) {
+      if (busy) {
+        return;
+      }
       clearResult();
       showStatus("", false);
+      resetButton.hidden = true;
+      selectedFile = null;
       detectButton.disabled = true;
-      preview.style.display = "none";
+      setPreview(null);
 
-      const file = fileInput.files[0];
       if (!file) {
         return;
       }
@@ -101,10 +178,74 @@
         showStatus(problem, true);
         return;
       }
-      preview.src = URL.createObjectURL(file);
-      preview.style.display = "block";
+      selectedFile = file;
+      setPreview(file);
       detectButton.disabled = false;
+    }
+
+    fileInput.addEventListener("change", function () {
+      handleFile(fileInput.files[0] || null);
     });
+
+    // The whole page accepts a drop, so a file dropped next to the box does not make the browser open it.
+    document.addEventListener("dragover", function (event) {
+      event.preventDefault();
+      dropZone.classList.add("dragging");
+    });
+
+    document.addEventListener("dragleave", function (event) {
+      // relatedTarget is null only when the pointer leaves the window.
+      if (event.relatedTarget === null) {
+        dropZone.classList.remove("dragging");
+      }
+    });
+
+    document.addEventListener("drop", function (event) {
+      event.preventDefault();
+      dropZone.classList.remove("dragging");
+      if (event.dataTransfer.files.length > 0) {
+        fileInput.value = ""; // the picker would still show the old file name
+        handleFile(event.dataTransfer.files[0]);
+      }
+    });
+
+    // Pasting text does nothing. Pasting an image (for example a screenshot) picks it.
+    document.addEventListener("paste", function (event) {
+      const items = event.clipboardData ? event.clipboardData.items : [];
+      for (const item of items) {
+        if (item.kind === "file" && item.type.startsWith("image/")) {
+          event.preventDefault();
+          fileInput.value = "";
+          handleFile(item.getAsFile());
+          return;
+        }
+      }
+    });
+
+    resetButton.addEventListener("click", function () {
+      fileInput.value = "";
+      handleFile(null);
+    });
+
+    // Shows "Working, 12 s" and updates it every second until stopProgress() is called.
+    function startProgress() {
+      const startedAt = Date.now();
+      function update() {
+        const seconds = Math.round((Date.now() - startedAt) / 1000);
+        let message = "Working, " + seconds + " s.";
+        if (seconds >= SLOW_AFTER_SECONDS) {
+          message += " The server may be busy";
+        }
+        showStatus(message, false);
+      }
+      update();
+      progressTimer = setInterval(update, 1000);
+    }
+
+    function stopProgress() {
+      clearInterval(progressTimer);
+      progressTimer = null;
+    }
 
     // Turns a failed response into a short message. Uses the backend's "detail" text when there is one.
     async function errorMessageFrom(response) {
@@ -120,28 +261,29 @@
     }
 
     function showResult(data) {
+      document.getElementById("category").textContent = CATEGORY_LABELS[data.category] || data.category;
       document.getElementById("family").textContent = data.family;
+      document.getElementById("alternatives").textContent = data.alternatives.join(", ");
       document.getElementById("confidence").textContent = data.confidence;
-      document.getElementById("category").textContent = data.category;
       document.getElementById("size").textContent =
         data.sizeMinPx + " to " + data.sizeMaxPx + " px (" + data.sizeLabel + ")";
-      document.getElementById("alternatives").textContent = data.alternatives.join(", ");
-      document.getElementById("reasoning").textContent = data.reasoning;
       resultEl.style.display = "block";
     }
 
     detectButton.addEventListener("click", async function () {
-      const file = fileInput.files[0];
-      if (!file) {
+      if (!selectedFile) {
         return;
       }
 
+      busy = true;
       clearResult();
       detectButton.disabled = true;
-      showStatus("Finding the font. If the server was idle, the first request can take up to a minute.", false);
+      fileInput.disabled = true;
+      resetButton.hidden = true;
+      startProgress();
 
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", selectedFile);
 
       const controller = new AbortController();
       const timer = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
@@ -166,8 +308,13 @@
           showStatus("Could not reach the server. Check your connection and try again.", true);
         }
       } finally {
+        // Runs after the result or the error message is shown, so the timer cannot overwrite them.
+        stopProgress();
         clearTimeout(timer);
+        busy = false;
         detectButton.disabled = false;
+        fileInput.disabled = false;
+        resetButton.hidden = false;
       }
     });
   </script>

@@ -271,3 +271,37 @@ One section per finished task, newest last.
 **Notes**
 - Inter needed 41.5 s, close to the edge: a page waiting 90 s still has room, but a slow first model costs 40 s before the backup starts.
 - Confidence is still always "high". Accuracy of the family name is still poor, so T5b (lead with category) still makes sense.
+
+## T5b Layout revamp (done)
+
+**Files changed**
+- `index.html`
+- `TASKS.md`, `progress.md`, `ISSUES.md`, `GITREPORT.md`, plus `DECISIONS.md` (gitignored)
+
+**What was done**
+- Result card leads with the category ("Serif", from a small `CATEGORY_LABELS` map, unknown values shown as they are), then "Best guess: <family>" and "Could also be: <alternatives>". Confidence and size stay in the list.
+- Follow-up (Leo's call, same task): removed the "Why" field (the model's reasoning), the intro line and the accuracy note under the card. The privacy note moved to a footer at the bottom of the page. The backend still sends `reasoning`, the page just does not show it.
+- Paste (Ctrl or Cmd + V anywhere) and drag and drop (anywhere on the page, so a missed drop does not open the image in the browser). Picker, paste and drop all call `handleFile()`, which runs the existing type and 1 MiB checks. The click handler sends `selectedFile` instead of reading the picker.
+- Progress text "Working, 12 s." updated every second, with "The server may be busy or waking up." from 20 s. Stopped in the `finally` block, so it ends on success, error and timeout.
+- While a request runs, the picker, paste and drop are ignored (`busy` flag), so the shown result always matches the preview.
+- "Try another image" button after a result or an error. It clears the file, picker, preview, status and result. Old preview URLs are freed with `URL.revokeObjectURL`.
+- Dark mode: colours moved into CSS variables, overridden in one `prefers-color-scheme: dark` block.
+- 175 to 328 lines. More than the 260 I estimated: the CSS variables, the dark block and the drag and drop handlers took more room.
+
+**Checks run**
+- Served a copy from the scratchpad (not the repo root) and tested in the built-in browser with a stubbed `fetch` and synthetic events:
+  - picker, drop and paste: `.txt` and GIF rejected, 1 MiB + 1 byte rejected, PNG accepted; pasting plain text changes nothing
+  - drop highlights the box on dragover, clears it on drop, and the drop is prevented from opening the file
+  - progress: "Working, 0 s.", "Working, 12 s.", "Working, 23 s. The server may be busy or waking up." (clock faked), then cleared after the reply and still clear 1 s later
+  - a paste during a request is ignored
+  - card order: label, category, best guess, alternatives, list; `<b>` in the reply shown as text; unknown category "blackletter" shown as is
+  - after the follow-up: page order is title, drop zone, buttons, preview, status, result, footer with the privacy note; the reasoning text never appears on the page; no console errors
+  - reset clears everything; 503 detail, non-JSON 500, network error and timeout messages unchanged, and the reset button appears after each
+  - screenshots in light and dark mode, and at 375 px wide with no sideways scroll
+- `python3 -m pytest -q`: 61 passed (backend untouched).
+
+**Not verified**
+- Real drag from Finder and real clipboard paste of a screenshot (only synthetic events). Safari and Firefox. No real Gemini request through the new page.
+
+**Notes**
+- After a paste or drop the file picker shows "No file chosen", because it was cleared on purpose. The preview shows which image is picked.

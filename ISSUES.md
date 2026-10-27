@@ -83,3 +83,4 @@ Every bug, error or issue found in the project. One entry per issue, status in t
 - Open. New prompt on `t4b-prompt-timeout`. First results: Playfair Display right, JetBrains Mono wrong (OCR-B), one more wrong family. Confidence still "high" on wrong answers.
 - Category is right 7 of 8 times across both prompts, so the category is more trustworthy than the family name.
 - T4b new models (one run): family right 2 of 5 (Inter, Playfair Display), category right 4 of 5 (Bungee called sans-serif). Confidence still "high" on every answer, including the 3 wrong ones. Still open.
+- T5b: mitigated in the UI. `index.html` now leads with the category and shows the family as "Best guess" with "Could also be" alternatives. The model's accuracy itself is unchanged, so the issue stays open.

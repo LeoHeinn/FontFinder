@@ -8,9 +8,15 @@ None.
 
 ## Next
 
-### T5b Lead with category in `index.html`
-- Show the category first and the font family as a best guess with the alternatives, because category is right far more often (T4: 7 of 8) than family (2 of 8)
-- Not started. Leo said: not yet
+### T5c Result actions in `index.html`
+- Copy button next to the font name
+- "Search on Google Fonts" link built from the family name (encoded, and labelled as a search, since not every font is on Google Fonts)
+- Alternatives as clickable chips that link the same way
+
+### T5d Sample images (optional experiment)
+- Sample buttons so a visitor without a screenshot can try it. Leo's own images only. Each click uses Gemini quota
+
+- Shrink images over 1 MiB in the browser. Keep only if a test on the 5 samples shows no loss in accuracy, since shrinking also shrinks the letters
 
 ### T6 Deploy (Leo)
 - Backend to Render with `GEMINI_API_KEY` set in the dashboard, frontend to GitHub Pages, point `index.html` at the Render URL
@@ -32,3 +38,4 @@ None.
 - T5 Write `index.html` (see `progress.md`): file check, loading state, result card, error messages. Checked with a stubbed `fetch`, not against real Gemini
 - T4 Real image check (see `progress.md`, `ISSUES.md`): pipeline works end to end on real images. Category right 7 of 8, family 2 of 8, confidence always "high", frequent Gemini 503s. Timeout raised to 60 s and prompt rewritten (commit `4b9b9f0`). No separate stylized-lettering line needed. The full new-prompt comparison moves to T4b, since the model changes
 - T4b Gemini model fallback (see `progress.md`, `ISSUES.md`): `gemini-3-flash-preview` 40 s, then `gemini-3.5-flash-lite` 20 s, then `gemini-3.1-flash-lite` 20 s. 61 tests pass. Real run: 5 of 5 answered, no 503, family 2 of 5, category 4 of 5
+- T5b Layout revamp (see `progress.md`): category first with the family as a best guess, paste and drag and drop through one `handleFile()`, "Working, N s" progress, "Try another image" reset, dark mode. Checked with a stubbed `fetch` and synthetic events, not with a real paste, drag or Gemini call

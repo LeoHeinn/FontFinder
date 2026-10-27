@@ -13,12 +13,13 @@ Add the row in the same commit it describes (merges included). A commit cannot k
 | Date | Hash | Branch | Task | Commit message | What changed, in plain words |
 ```
 
-## Branches right now (2026-10-22)
+## Branches right now (2026-10-27)
 
 | Branch | Task | Points to | State |
 |---|---|---|---|
-| `main` | T1 to T5, T4 notes | `e93f1d8` T5 | 12 commits ahead of GitHub (`origin/main` is at `2e5afde`). Not pushed. |
-| `t4b-prompt-timeout` | T4 | latest row in the log | T4 retry: 60 s timeout and new prompt. In use. Not merged into `main` yet. |
+| `main` | T1 to T5, T4, T4b | `e4e0f57` T4b | 14 commits ahead of GitHub (`origin/main` is at `2e5afde`). Not pushed. |
+| `t5b` | T5b | latest row in the log | Layout revamp of `index.html`. In use. Not merged into `main` yet. |
+| `t4b-prompt-timeout` | T4, T4b | `e4e0f57` T4b | Fully merged into `main` (fast-forward). Safe to delete. |
 | `t5-frontend` | T5 | `e93f1d8` T5 | Fully merged into `main` (fast-forward). Safe to delete. |
 | `t4-real-check` | T4 | `10a8c35` T4 | Fully merged into `main`. Replaced by `t4b-prompt-timeout`. Safe to delete. |
 | `fix-upload-limit` | T3b | `6b22f2d` T3b | Fully merged into `main`. Safe to delete. |
@@ -52,4 +53,5 @@ Add the row in the same commit it describes (merges included). A commit cannot k
 | 2026-10-22 | `e93f1d8` | t5-frontend | T5 | T5: Front End Update GITREPORT.md | Report only. Rows for `10a8c35`, `f790722`, `d665250` and a new branch table. Then `t5-frontend` was merged into `main` (fast-forward, no merge commit). |
 | 2026-10-23 | `4b9b9f0` | t4b-prompt-timeout | T4 | T4: Raise Gemini timeout to 60 s and rewrite the prompt for accuracy | `backend/main.py`: timeout 30 to 60 s, new prompt (no "prefer well-known names", letterform checklist, Google Fonts in scope, stricter "high" confidence). Same keys, parser untouched. `progress.md` T4 retry section: old-prompt accuracy table, first new-prompt results (Playfair right, JetBrains Mono wrong), category right 7 of 8, 503 pattern and the 3-try test rule. `ISSUES.md`: timeout update and new wrong-font issue. `TASKS.md`: T7 must list the Gemini API limitations. |
 
-| 2026-10-23 | `(pending)` | t4b-prompt-timeout | T4b | T4b: Add Gemini model fallback (3 Flash preview, then 3.5 and 3.1 Flash-Lite) | `backend/main.py`: one `MODELS` list replaces the single model and timeout. `call_gemini()` tries `gemini-3-flash-preview` (40 s), then `gemini-3.5-flash-lite` (20 s), then `gemini-3.1-flash-lite` (20 s) on 503, 429, timeout or other 5xx, and logs which model answered. New `backend/tests/test_gemini_fallback.py` (17 tests, 61 pass). `progress.md` T4b section with the real 5-image run (no 503, family 2 of 5, category 4 of 5), `ISSUES.md` and `TASKS.md` updated. |
+| 2026-10-23 | `e4e0f57` | t4b-prompt-timeout | T4b | T4b: Implement Gemini model fallback with multiple timeouts and logging | `backend/main.py`: one `MODELS` list replaces the single model and timeout. `call_gemini()` tries `gemini-3-flash-preview` (40 s), then `gemini-3.5-flash-lite` (20 s), then `gemini-3.1-flash-lite` (20 s) on 503, 429, timeout or other 5xx, and logs which model answered. New `backend/tests/test_gemini_fallback.py` (17 tests, 61 pass). `progress.md` T4b section with the real 5-image run (no 503, family 2 of 5, category 4 of 5), `ISSUES.md` and `TASKS.md` updated. |
+| 2026-10-27 | `(pending)` | t5b | T5b | T5b: Revamp index.html layout: category first, paste and drag and drop, progress timer, reset, dark mode | `index.html`: result card leads with the category, family shown as a best guess with alternatives, confidence kept. Removed the "Why" field, the intro line and the accuracy note; privacy note moved to a footer. Paste and drag and drop go through the same file checks as the picker. "Working, 12 s" progress with a "may be busy" hint after 20 s. "Try another image" reset. Dark mode with CSS variables. Backend untouched. `TASKS.md` adds T5c, T5d, T5e. `progress.md` and `ISSUES.md` updated. |
