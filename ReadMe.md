@@ -150,8 +150,7 @@ python3 -m pytest
 ├── .env.example                Example environment variables (placeholders only)
 ├── progress.md                 Work log per task
 ├── ISSUES.md                   Known issues and their status
-├── TASKS.md                    Task list
-└── GITREPORT.md                Plain-language commit log
+└── TASKS.md                    Task list
 ```
 
 ## Deployment
