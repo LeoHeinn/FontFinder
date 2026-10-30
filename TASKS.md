@@ -30,26 +30,26 @@ Only one task is "In progress" at a time.
 - `test.py` works end to end with `gemini-3.8-flash`
 - API key moved into `.env`, and `.env` is gitignored
 - Prompt chosen
-- T1 Scaffold the FastAPI backend (see `progress.md`): 9 upload validation tests pass
+- T1 Scaffold the FastAPI backend (see `PROGRESS.md`): 9 upload validation tests pass
 
 ### T2
-- T2 Parse and validate the Gemini response (see `progress.md`): checked by hand, tests are T3
+- T2 Parse and validate the Gemini response (see `PROGRESS.md`): checked by hand, tests are T3
 
 ### T3
-- T3 Tests for the parser (see `progress.md`): 28 new tests in `backend/tests/test_parser.py`, 37 pass in total
-- T3b Upload size limit fix (see `progress.md`, `ISSUES.md`): 1 MiB limit plus byte-counting middleware, 44 tests pass
+- T3 Tests for the parser (see `PROGRESS.md`): 28 new tests in `backend/tests/test_parser.py`, 37 pass in total
+- T3b Upload size limit fix (see `PROGRESS.md`, `ISSUES.md`): 1 MiB limit plus byte-counting middleware, 44 tests pass
 
 ### T4
-- T4 Real image check (see `progress.md`, `ISSUES.md`): pipeline works end to end on real images. Category right 7 of 8, family 2 of 8, confidence always "high", frequent Gemini 503s. Timeout raised to 60 s and prompt rewritten (commit `4b9b9f0`). No separate stylized-lettering line needed. The full new-prompt comparison moves to T4b, since the model changes
-- T4b Gemini model fallback (see `progress.md`, `ISSUES.md`): `gemini-3-flash-preview` 40 s, then `gemini-3.5-flash-lite` 20 s, then `gemini-3.1-flash-lite` 20 s. 61 tests pass. Real run: 5 of 5 answered, no 503, family 2 of 5, category 4 of 5
+- T4 Real image check (see `PROGRESS.md`, `ISSUES.md`): pipeline works end to end on real images. Category right 7 of 8, family 2 of 8, confidence always "high", frequent Gemini 503s. Timeout raised to 60 s and prompt rewritten (commit `4b9b9f0`). No separate stylized-lettering line needed. The full new-prompt comparison moves to T4b, since the model changes
+- T4b Gemini model fallback (see `PROGRESS.md`, `ISSUES.md`): `gemini-3-flash-preview` 40 s, then `gemini-3.5-flash-lite` 20 s, then `gemini-3.1-flash-lite` 20 s. 61 tests pass. Real run: 5 of 5 answered, no 503, family 2 of 5, category 4 of 5
 
 ### T5
-- T5 Write `index.html` (see `progress.md`): file check, loading state, result card, error messages. Checked with a stubbed `fetch`, not against real Gemini (done while T4 was paused)
-- T5b Layout revamp (see `progress.md`): category first with the family as a best guess, paste and drag and drop through one `handleFile()`, "Working, N s" progress, "Try another image" reset, dark mode. Checked with a stubbed `fetch` and synthetic events, not with a real paste, drag or Gemini call
-- T5c Result actions (see `progress.md`): the best-guess name links to a Google Fonts search, alternatives as link chips, all links built by one encoding function. No link for "Unknown". Copy button built, then removed. Checked with a stubbed `fetch`; the Google Fonts URL format checked for real
+- T5 Write `index.html` (see `PROGRESS.md`): file check, loading state, result card, error messages. Checked with a stubbed `fetch`, not against real Gemini (done while T4 was paused)
+- T5b Layout revamp (see `PROGRESS.md`): category first with the family as a best guess, paste and drag and drop through one `handleFile()`, "Working, N s" progress, "Try another image" reset, dark mode. Checked with a stubbed `fetch` and synthetic events, not with a real paste, drag or Gemini call
+- T5c Result actions (see `PROGRESS.md`): the best-guess name links to a Google Fonts search, alternatives as link chips, all links built by one encoding function. No link for "Unknown". Copy button built, then removed. Checked with a stubbed `fetch`; the Google Fonts URL format checked for real
 
 ### T6
-- T6a Security hardening (see `progress.md`, `ISSUES.md`): quota cap and key restriction in Google's console, rate limit 5 per minute per IP and 30 in total, API docs off, limits on the model's answer, CORS without extra headers. 82 tests pass
+- T6a Security hardening (see `PROGRESS.md`, `ISSUES.md`): quota cap and key restriction in Google's console, rate limit 5 per minute per IP and 30 in total, API docs off, limits on the model's answer, CORS without extra headers. 82 tests pass
 
 ### T7
-- T7 README and doc cleanup (see `progress.md`): README rewritten with screenshots, accuracy numbers, API and security sections; `reasoning` dropped from the API (81 tests pass); `progress.md`, `ISSUES.md` and `TASKS.md` reorganized. `LICENSE` still to add (T7b)
+- T7 README and doc cleanup (see `PROGRESS.md`): README rewritten with screenshots, accuracy numbers, API and security sections; `reasoning` dropped from the API (81 tests pass); `PROGRESS.md`, `ISSUES.md` and `TASKS.md` reorganized. `LICENSE` still to add (T7b)

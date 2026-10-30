@@ -1,4 +1,4 @@
-# progress.md
+# PROGRESS.md
 
 Work log for Font Finder: what each task built, how it was checked, and what was still open at the end of it. Tasks are listed by ID.
 
@@ -248,7 +248,7 @@ Family 2 of 5, category 4 of 5. No 503 at all, and calls were faster (5 to 15 s 
 - `ReadMe.md` rewritten to match the project: features, how it works (mermaid diagram with the model fallback), the real accuracy numbers, limitations, privacy, the `/detect` API with field limits and an error table, security measures, tests, project structure, planned deployment and the licence.
 - Two screenshots of the page in `images/` (start page and an Inter result), shown at the top of the README.
 - `reasoning` removed from the prompt and from `DetectResult`, so `/detect` returns 7 fields, matching what the page shows. A `reasoning` key the model still sends is dropped. Tests: 2 removed, 1 added.
-- `progress.md`, `ISSUES.md` and `TASKS.md` reorganized and reworded: no personal names, no rules for maintaining the files, open issues first.
+- `PROGRESS.md`, `ISSUES.md` and `TASKS.md` reorganized and reworded: no personal names, no rules for maintaining the files, open issues first.
 - The commit log file was made local only (gitignored).
 
 **Checks**

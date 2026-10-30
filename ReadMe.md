@@ -146,9 +146,9 @@ python3 -m pytest
 │   ├── requirements.txt        Python dependencies
 │   └── tests/                  pytest tests
 ├── images/                     Screenshots used in this README
-├── refrence/test.py            Original standalone Gemini test script, kept as a reference
+├── reference/test.py           Original standalone Gemini test script, kept as a reference
 ├── .env.example                Example environment variables (placeholders only)
-├── progress.md                 Work log per task
+├── PROGRESS.md                 Work log per task
 ├── ISSUES.md                   Known issues and their status
 └── TASKS.md                    Task list
 ```

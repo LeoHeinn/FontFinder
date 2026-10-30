@@ -10,7 +10,7 @@ Every bug, error or issue found in the project, with where it is, what it does a
 | Privacy footer does not say what Google may do with images | Open | Not changed in T6a |
 | Dependencies are not pinned | Open | Planned as T6b |
 | Deploy settings must be right | Open | T6 |
-| `refrence/test.py` puts the key in the URL | Open | Not changed (reference file) |
+| `reference/test.py` puts the key in the URL | Open | Not changed (reference file) |
 | First request after Render sleeps can pass the page's 90 s limit | Open | Found in T7, check in T6 |
 | Real Gemini calls fail with 503 or 504 | Mitigated | T4, T4b |
 | Anyone can use up the Gemini quota | Mitigated | T6a |
@@ -29,7 +29,7 @@ Every bug, error or issue found in the project, with where it is, what it does a
 - The answer from Gemini, shown by `/detect` and `index.html`. Prompt in `backend/main.py` `PROMPT`.
 
 **Effect**
-- With the old prompt, 1 of 5 real answers named the right family (see `progress.md`, T4). Category was right 4 of 5.
+- With the old prompt, 1 of 5 real answers named the right family (see `PROGRESS.md`, T4). Category was right 4 of 5.
 - Every answer said "high" confidence, so users cannot tell a good answer from a bad one.
 - The same Bungee image gave two different answers (Bungee, then Russo One).
 
@@ -77,10 +77,10 @@ Every bug, error or issue found in the project, with where it is, what it does a
 **Status**
 - Open. Part of T6.
 
-### `refrence/test.py` puts the key in the URL
+### `reference/test.py` puts the key in the URL
 
 **Where**
-- `refrence/test.py:7-8`, `?key=` in the URL, with only the placeholder `"API Key"`.
+- `reference/test.py:7-8`, `?key=` in the URL, with only the placeholder `"API Key"`.
 
 **Effect**
 - None today. A real key pasted there would be committed and would show up in logs.
