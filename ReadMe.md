@@ -4,9 +4,13 @@ Upload a screenshot of text and get back the font category, a best guess at the 
 
 **Live demo:** coming soon (after deployment).
 
-| Start | Result |
-|---|---|
-| ![Font Finder start page: drop zone with file picker and Find font button](images/screenshot-start.webp) | ![Result for an Inter sample: category Sans-serif, best guess Inter, alternatives SF Pro Display, Roboto and Helvetica Now, size 32 to 48 px](images/screenshot-result.webp) |
+### Start
+
+![Font Finder start page: drop zone with file picker and Find font button](images/screenshot-start.webp)
+
+### Result
+
+![Result for an Inter sample: category Sans-serif, best guess Inter, alternatives SF Pro Display, Roboto and Helvetica Now, size 32 to 48 px](images/screenshot-result.webp)
 
 ## Features
 
