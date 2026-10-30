@@ -12,7 +12,7 @@ import main  # noqa: E402
 PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"fake image body"
 GOOD_REPLY = (
     '{"family": "Arial", "confidence": "high", "category": "sans-serif", "alternatives": ["Helvetica"],'
-    ' "sizeMinPx": 14, "sizeMaxPx": 18, "sizeLabel": "body text", "reasoning": "Test."}'
+    ' "sizeMinPx": 14, "sizeMaxPx": 18, "sizeLabel": "body text"}'
 )
 
 

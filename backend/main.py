@@ -48,8 +48,7 @@ Respond with ONLY a JSON object, no markdown, with these keys:
 "category" ("serif" | "sans-serif" | "monospace" | "script" | "display"),
 "alternatives" (array of 2-3 other font family names that could also match),
 "sizeMinPx" (number), "sizeMaxPx" (number) - approximate rendered size of the main text in CSS px based on the image,
-"sizeLabel" (e.g. "body text", "heading", "caption"),
-"reasoning" (one or two sentences naming the letterforms that set this font apart from the alternatives).
+"sizeLabel" (e.g. "body text", "heading", "caption").
 If there is no readable text, set family to "Unknown" and confidence to "low"."""
 
 
@@ -67,7 +66,6 @@ class DetectResult(BaseModel):
     sizeMinPx: SizePx
     sizeMaxPx: SizePx
     sizeLabel: ShortText
-    reasoning: str = Field(max_length=500)
 
 
 class RateLimiter:

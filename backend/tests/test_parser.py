@@ -18,7 +18,6 @@ KEYS = [
     "sizeMinPx",
     "sizeMaxPx",
     "sizeLabel",
-    "reasoning",
 ]
 
 
@@ -32,7 +31,6 @@ def valid_reply() -> Dict[str, Any]:
         "sizeMinPx": 14,
         "sizeMaxPx": 18,
         "sizeLabel": "body text",
-        "reasoning": "Uniform stroke width and a single-storey g.",
     }
 
 
@@ -52,7 +50,6 @@ def test_plain_json_returns_every_field() -> None:
     assert result.sizeMinPx == 14
     assert result.sizeMaxPx == 18
     assert result.sizeLabel == "body text"
-    assert result.reasoning == "Uniform stroke width and a single-storey g."
 
 
 def test_json_fence_is_stripped() -> None:
@@ -85,6 +82,13 @@ def test_equal_min_and_max_size_is_valid() -> None:
     reply["sizeMaxPx"] = 16
     result = main.parse_gemini_response(to_text(reply))
     assert result.sizeMinPx == result.sizeMaxPx == 16
+
+
+def test_reasoning_from_the_model_is_dropped() -> None:
+    reply = valid_reply()
+    reply["reasoning"] = "C" * 2000
+    result = main.parse_gemini_response(to_text(reply))
+    assert "reasoning" not in result.model_dump()
 
 
 def test_extra_key_is_ignored() -> None:
@@ -165,7 +169,6 @@ def test_error_message_does_not_contain_model_text(text: str) -> None:
     [
         ("family", "A" * 101),
         ("sizeLabel", "B" * 101),
-        ("reasoning", "C" * 501),
         ("alternatives", ["One", "Two", "Three", "Four", "Five", "Six"]),
         ("alternatives", ["Fine", "D" * 101]),
         ("sizeMinPx", -1),
@@ -174,7 +177,6 @@ def test_error_message_does_not_contain_model_text(text: str) -> None:
     ids=[
         "family-too-long",
         "size-label-too-long",
-        "reasoning-too-long",
         "six-alternatives",
         "alternative-too-long",
         "negative-size",
@@ -191,7 +193,6 @@ def test_answer_outside_limits_raises(key: str, bad_value: Any) -> None:
 def test_answer_at_the_limits_is_valid() -> None:
     reply = valid_reply()
     reply["family"] = "A" * 100
-    reply["reasoning"] = "C" * 500
     reply["alternatives"] = ["One", "Two", "Three", "Four", "Five"]
     reply["sizeMinPx"] = 0
     reply["sizeMaxPx"] = 1000

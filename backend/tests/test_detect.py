@@ -38,7 +38,6 @@ def gemini_calls(monkeypatch: pytest.MonkeyPatch) -> List[str]:
             sizeMinPx=14,
             sizeMaxPx=18,
             sizeLabel="body text",
-            reasoning="Test data.",
         )
 
     monkeypatch.setattr(main, "call_gemini", fake_call_gemini)
