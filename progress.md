@@ -343,3 +343,32 @@ One section per finished task, newest last.
 
 **Notes**
 - With "Unknown" and no alternatives, "Could also be:" is shown with nothing under it.
+
+## T6a Security hardening (done, parts 2 and 4)
+
+**Files changed**
+- `backend/main.py`, `backend/tests/test_parser.py`, `backend/tests/conftest.py` (new), `backend/tests/test_security.py` (new)
+- `TASKS.md`, `progress.md`, `ISSUES.md`, `GITREPORT.md`, plus `DECISIONS.md` (gitignored)
+
+**What was done**
+- Part 1 (Leo): quota cap and API restriction on the Gemini key in Google's console.
+- Part 2: `RateLimiter` class. A dict of recent request times per client IP plus one list for everyone, a lock because `detect()` runs in several threads, and idle IPs are removed. `detect()` checks it after the upload checks and before Gemini, so a rejected upload costs no slot and a blocked request costs no quota. Limits: 5 per minute per IP, 30 in total. Answer: 429 "Too many requests. Try again in a minute.", which the page already shows.
+- Part 4: `FastAPI(docs_url=None, redoc_url=None, openapi_url=None)`. `DetectResult` limits through `Field`: names and size label 100 characters, reasoning 500, alternatives at most 5, sizes 0 to 1000 px (0 allowed, not 1 as first planned, because an "Unknown" answer may have no size). CORS `allow_headers=[]`.
+- `conftest.py` gives every test a fresh limiter, so tests that call `/detect` never block each other.
+- Not done: part 3 (privacy line, Leo said no), part 5 (pinning), part 6 (CSP).
+
+**Checks run**
+- `python3 -m py_compile` on the changed files: ok. `python3 -m pytest -q`: 82 passed (61 old, 21 new).
+- Each protection was removed on purpose in a throwaway copy, and the tests failed every time: no per-IP limit (6 failed), no total cap (1), docs back on (3), no length cap (3), no size range (2), limiter moved before the upload checks (2).
+- Local uvicorn with a fake key (so Gemini refused it with 400 and no quota was used) and `ALLOWED_ORIGINS=http://127.0.0.1:5500`:
+  - `/docs`, `/redoc`, `/openapi.json`: 404
+  - `/detect` 7 times from one IP: 5 times 502 (fake key, no fallback on 400), then 429 twice without a Gemini call (log shows no model line)
+  - preflight from the allowed origin asking for a custom header `X-Custom`: 400 (refused)
+  - a plain POST from the allowed origin still gets `access-control-allow-origin`, so the page can read the 429 message
+
+**Not verified**
+- How Render's proxy passes the client IP. If the app sees Render's IP, every user shares the 5 per minute. Check in T6.
+- The `test_cors_preflight_from_unknown_origin_is_refused` test passes with or without the `allow_headers` change (no origin is allowed in tests). The `allow_headers` change was checked by hand with curl above.
+
+**Notes**
+- Calls that fail at Gemini still use a slot, since they did call Gemini.

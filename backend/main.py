@@ -2,13 +2,16 @@ import base64
 import json
 import logging
 import os
-from typing import List, Literal, Optional
+import threading
+import time
+from collections import deque
+from typing import Annotated, Deque, Dict, List, Literal, Optional
 
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 load_dotenv()
@@ -29,6 +32,13 @@ logger = logging.getLogger("uvicorn.error")
 MAX_UPLOAD_BYTES = 1024 * 1024
 TOO_LARGE_DETAIL = "File is too large. Maximum is 1 MB."
 
+# Requests allowed in any 60 s window before Gemini is called. Protects the free quota from scripts,
+# since CORS only stops other websites, not direct calls with curl.
+RATE_LIMIT_PER_CLIENT = 5
+RATE_LIMIT_TOTAL = 30
+RATE_LIMIT_WINDOW_SECONDS = 60
+RATE_LIMIT_DETAIL = "Too many requests. Try again in a minute."
+
 PROMPT = """You are a typography expert. Identify the font in this screenshot of text.
 Before deciding, study the distinctive letterforms: the shapes of a, g, R, Q, t, y and the digits, the terminals, the x-height, the stroke contrast and the spacing.
 Consider the full range of fonts, including Google Fonts and modern UI and coding fonts, not only classic or system fonts. Do not answer Helvetica, Arial or Times unless the letterforms really match them.
@@ -43,15 +53,62 @@ Respond with ONLY a JSON object, no markdown, with these keys:
 If there is no readable text, set family to "Unknown" and confidence to "low"."""
 
 
+# Limits on the model's answer. Text inside an image can steer the model, so an odd or huge answer
+# is rejected here instead of reaching the page. Sizes may be 0 for an image with no readable text.
+ShortText = Annotated[str, Field(max_length=100)]
+SizePx = Annotated[float, Field(ge=0, le=1000)]
+
+
 class DetectResult(BaseModel):
-    family: str
+    family: ShortText
     confidence: Literal["high", "medium", "low"]
     category: Literal["serif", "sans-serif", "monospace", "script", "display"]
-    alternatives: List[str]
-    sizeMinPx: float
-    sizeMaxPx: float
-    sizeLabel: str
-    reasoning: str
+    alternatives: List[ShortText] = Field(max_length=5)
+    sizeMinPx: SizePx
+    sizeMaxPx: SizePx
+    sizeLabel: ShortText
+    reasoning: str = Field(max_length=500)
+
+
+class RateLimiter:
+    """Counts requests in the last window_seconds, per client and for everyone together."""
+
+    def __init__(self, per_client: int, total: int, window_seconds: float) -> None:
+        self.per_client = per_client
+        self.total = total
+        self.window_seconds = window_seconds
+        self.by_client: Dict[str, Deque[float]] = {}
+        self.everyone: Deque[float] = deque()
+        # detect() runs in several threads at once. Without the lock, two requests could both take the last slot.
+        self.lock = threading.Lock()
+
+    def allow(self, client: str, now: float) -> bool:
+        """Record the request and return True, or return False if a limit is reached."""
+        with self.lock:
+            cutoff = now - self.window_seconds
+            drop_older_than(self.everyone, cutoff)
+            # Forget clients with no recent requests, so the dict cannot grow forever.
+            for key in list(self.by_client):
+                drop_older_than(self.by_client[key], cutoff)
+                if not self.by_client[key]:
+                    del self.by_client[key]
+
+            mine = self.by_client.get(client, deque())
+            if len(mine) >= self.per_client or len(self.everyone) >= self.total:
+                return False
+            mine.append(now)
+            self.by_client[client] = mine
+            self.everyone.append(now)
+            return True
+
+
+def drop_older_than(times: Deque[float], cutoff: float) -> None:
+    """Remove times at or before cutoff. Times are added in order, so the oldest are on the left."""
+    while times and times[0] <= cutoff:
+        times.popleft()
+
+
+rate_limiter = RateLimiter(RATE_LIMIT_PER_CLIENT, RATE_LIMIT_TOTAL, RATE_LIMIT_WINDOW_SECONDS)
 
 
 class BodySizeLimitMiddleware:
@@ -82,7 +139,8 @@ class BodySizeLimitMiddleware:
         await self.app(scope, limited_receive, send)
 
 
-app = FastAPI()
+# No /docs, /redoc or /openapi.json. They would give anyone a ready-made upload form for this API.
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
 # Counts body bytes instead of trusting Content-Length, because chunked uploads have no length.
 app.add_middleware(BodySizeLimitMiddleware, max_bytes=MAX_UPLOAD_BYTES)
@@ -96,7 +154,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_methods=["POST"],
-    allow_headers=["*"],
+    # The page sends a plain form upload with no custom headers, so none need to be allowed.
+    allow_headers=[],
 )
 
 
@@ -207,7 +266,7 @@ def parse_gemini_response(raw_text: str) -> DetectResult:
 
 
 @app.post("/detect", response_model=DetectResult)
-def detect(file: UploadFile = File(...)) -> DetectResult:
+def detect(request: Request, file: UploadFile = File(...)) -> DetectResult:
     # BodySizeLimitMiddleware has already capped the request at MAX_UPLOAD_BYTES.
     # Reading one byte past the limit keeps the check below as a backstop if the middleware is removed.
     data = file.file.read(MAX_UPLOAD_BYTES + 1)
@@ -219,6 +278,11 @@ def detect(file: UploadFile = File(...)) -> DetectResult:
     mime_type = sniff_image_type(data)
     if mime_type is None:
         raise HTTPException(status_code=415, detail="Only PNG, JPEG and WebP images are accepted.")
+
+    # Checked after the upload checks, so only requests that would really use Gemini count.
+    client = request.client.host if request.client else "unknown"
+    if not rate_limiter.allow(client, time.monotonic()):
+        raise HTTPException(status_code=429, detail=RATE_LIMIT_DETAIL)
 
     raw_text = call_gemini(data, mime_type)
     try:

@@ -13,9 +13,14 @@ None.
 
 - Shrink images over 1 MiB in the browser. Keep only if a test on the 5 samples shows no loss in accuracy, since shrinking also shrinks the letters
 
+### T6b Pin dependencies (planned, from T6a part 5)
+- Exact versions in `backend/requirements.txt`, `pytest` and `httpx` moved to a new `backend/requirements-dev.txt`. Needs Leo's OK (dependency change)
+
 ### T6 Deploy (Leo)
 - Backend to Render with `GEMINI_API_KEY` set in the dashboard, frontend to GitHub Pages, point `index.html` at the Render URL
 - Do not deploy until T4 has at least one real successful image result
+- `API_URL` must be the https Render URL, `ALLOWED_ORIGINS` exactly the GitHub Pages origin
+- Check which IP the rate limiter sees behind Render's proxy (uvicorn `--proxy-headers`). If it is Render's own IP, every user shares 5 per minute
 
 ### T7 Update README
 - Python backend setup, `/detect` request and response shape, limitations, privacy note
@@ -35,3 +40,4 @@ None.
 - T4b Gemini model fallback (see `progress.md`, `ISSUES.md`): `gemini-3-flash-preview` 40 s, then `gemini-3.5-flash-lite` 20 s, then `gemini-3.1-flash-lite` 20 s. 61 tests pass. Real run: 5 of 5 answered, no 503, family 2 of 5, category 4 of 5
 - T5b Layout revamp (see `progress.md`): category first with the family as a best guess, paste and drag and drop through one `handleFile()`, "Working, N s" progress, "Try another image" reset, dark mode. Checked with a stubbed `fetch` and synthetic events, not with a real paste, drag or Gemini call
 - T5c Result actions (see `progress.md`): the best-guess name links to a Google Fonts search, alternatives as link chips, all links built by one encoding function. No link for "Unknown". Copy button built, then removed (Leo's call). Checked with a stubbed `fetch`; the Google Fonts URL format checked for real
+- T6a Security hardening (see `progress.md`, `ISSUES.md`): quota cap and key restriction in Google's console (Leo), rate limit 5 per minute per IP and 30 in total, API docs off, limits on the model's answer, CORS without extra headers. 82 tests pass

@@ -13,12 +13,13 @@ Add the row in the same commit it describes (merges included). A commit cannot k
 | Date | Hash | Branch | Task | Commit message | What changed, in plain words |
 ```
 
-## Branches right now (2026-10-27, after the T5b merge)
+## Branches right now (2026-10-30)
 
 | Branch | Task | Points to | State |
 |---|---|---|---|
-| `main` | T1 to T5b | `407b08c` T5b | 15 commits ahead of GitHub (`origin/main` is at `2e5afde`). Not pushed. |
-| `t5c` | T5c | latest row in the log | Google Fonts search link on the font name and alternative chips in `index.html`. In use. Not merged into `main` yet. |
+| `main` | T1 to T5c | `835e421` T5c | 16 commits ahead of GitHub (`origin/main` is at `2e5afde`). Not pushed. |
+| `t6` | T6a | latest row in the log | Security hardening before deploy. In use. Not merged into `main` yet. |
+| `t5c` | T5c | `835e421` T5c | Fully merged into `main` (fast-forward). Safe to delete. |
 | `t5b` | T5b | `407b08c` T5b | Fully merged into `main` (fast-forward). Safe to delete. |
 | `t4b-prompt-timeout` | T4, T4b | `e4e0f57` T4b | Fully merged into `main` (fast-forward). Safe to delete. |
 | `t5-frontend` | T5 | `e93f1d8` T5 | Fully merged into `main` (fast-forward). Safe to delete. |
@@ -56,4 +57,5 @@ Add the row in the same commit it describes (merges included). A commit cannot k
 
 | 2026-10-23 | `e4e0f57` | t4b-prompt-timeout | T4b | T4b: Implement Gemini model fallback with multiple timeouts and logging | `backend/main.py`: one `MODELS` list replaces the single model and timeout. `call_gemini()` tries `gemini-3-flash-preview` (40 s), then `gemini-3.5-flash-lite` (20 s), then `gemini-3.1-flash-lite` (20 s) on 503, 429, timeout or other 5xx, and logs which model answered. New `backend/tests/test_gemini_fallback.py` (17 tests, 61 pass). `progress.md` T4b section with the real 5-image run (no 503, family 2 of 5, category 4 of 5), `ISSUES.md` and `TASKS.md` updated. |
 | 2026-10-27 | `407b08c` | t5b | T5b | T5b: Revamp index.html layout: category first, paste and drag and drop, progress timer, reset, dark mode | `index.html`: result card leads with the category, family shown as a best guess with alternatives, confidence kept. Removed the "Why" field, the intro line and the accuracy note; privacy note moved to a footer. Paste and drag and drop go through the same file checks as the picker. "Working, 12 s" progress with a "may be busy" hint after 20 s. "Try another image" reset. Dark mode with CSS variables. Backend untouched. `TASKS.md` adds T5c, T5d, T5e. `progress.md` and `ISSUES.md` updated. |
-| 2026-10-27 | `(pending)` | t5c | T5c | T5c: Link the font name and alternatives to a Google Fonts search | `index.html`: the best-guess name itself links to a Google Fonts search (highlighted), alternatives as link chips. All links come from one function: fixed `https://fonts.google.com/?query=` plus `encodeURIComponent`. No link when the family is "Unknown". A Copy button was tried and removed. Also Leo's T5b full stop fix in the progress text. `progress.md` T5c section and T5b wording, `TASKS.md` updated. |
+| 2026-10-27 | `835e421` | t5c | T5c | T5c: Link font name and alternatives to Google Fonts search; enhance index.html with clickable chips for alternatives. | `index.html`: the best-guess name itself links to a Google Fonts search (highlighted), alternatives as link chips. All links come from one function: fixed `https://fonts.google.com/?query=` plus `encodeURIComponent`. No link when the family is "Unknown". A Copy button was tried and removed. Also Leo's T5b full stop fix in the progress text. `progress.md` T5c section and T5b wording, `TASKS.md` updated. |
+| 2026-10-30 | `(pending)` | t6 | T6a | T6a: Add rate limit, turn off API docs, limit model answer size, tighten CORS | `backend/main.py`: `RateLimiter` (5 requests per minute per IP, 30 in total, checked after the upload checks so only requests that would call Gemini count), `/docs`, `/redoc` and `/openapi.json` off, `DetectResult` limits (100 chars for names and size label, 500 for reasoning, at most 5 alternatives, sizes 0 to 1000 px), CORS allows no extra headers. New `backend/tests/conftest.py` (fresh limiter per test) and `backend/tests/test_security.py`, 8 new limit tests in `test_parser.py`, 82 pass. `ISSUES.md` lists the security review findings. `progress.md`, `TASKS.md` updated. |

@@ -84,3 +84,48 @@ Every bug, error or issue found in the project. One entry per issue, status in t
 - Category is right 7 of 8 times across both prompts, so the category is more trustworthy than the family name.
 - T4b new models (one run): family right 2 of 5 (Inter, Playfair Display), category right 4 of 5 (Bungee called sans-serif). Confidence still "high" on every answer, including the 3 wrong ones. Still open.
 - T5b: mitigated in the UI. `index.html` now leads with the category and shows the family as "Best guess" with "Could also be" alternatives. The model's accuracy itself is unchanged, so the issue stays open.
+
+### Security review 2026-10-27: findings and status
+
+**Anyone can use up the Gemini quota (mitigated in T6a)**
+- Where: `backend/main.py` `/detect` had no limit per user, and the model fallback can make up to 3 Gemini calls per request.
+- Effect: CORS only stops other websites. A script calling the Render URL directly could spend the whole free quota.
+- Status: Leo set a quota cap and an API restriction on the key in Google's console (T6a part 1). `RateLimiter` allows 5 requests per minute per IP and 30 in total (T6a part 2). Open part: counts reset when Render restarts the server, and behind Render's proxy the app may see Render's IP instead of the user's, which would put everyone in one bucket. Check in T6.
+
+**Slow requests can block the server (partly mitigated in T6a)**
+- Where: `detect()` is a normal function, so it runs in a pool of about 40 threads, and each request can wait up to 80 s for Gemini.
+- Effect: about 40 slow requests at once would make the server stop answering.
+- Status: the 30 per minute total cap makes this much harder. Not fully solved.
+
+**Text inside an image can steer the model's answer (mitigated in T6a)**
+- Where: the model reads text in the image, and its answer goes to the page.
+- Effect: odd or very long text in the result card. No script can run: the page uses `textContent` and builds links from a fixed prefix plus `encodeURIComponent`.
+- Status: `DetectResult` now limits names and size label to 100 characters, reasoning to 500, alternatives to 5, sizes to 0 to 1000 px. Anything outside becomes 502.
+
+**API docs pages were public (fixed in T6a)**
+- Where: FastAPI served `/docs`, `/redoc` and `/openapi.json` by default.
+- Effect: a ready-made upload form and a list of the API for anyone.
+- Status: fixed, all three return 404.
+
+**Privacy footer does not say what Google may do with images (open, Leo's call)**
+- Where: `index.html` footer.
+- Effect: the footer says this server does not save images, which is true. The free Gemini API terms may allow Google to keep and review content (not checked). Users get no warning about private screenshots.
+- Status: open. Leo chose not to change it in T6a.
+
+**Dependencies are not pinned (open, planned)**
+- Where: `backend/requirements.txt` has no versions, and installs `pytest` and `httpx` in production.
+- Effect: every deploy installs the newest versions, so a broken or bad release could go live unnoticed.
+- Status: open. Planned as T6a part 5 (pin, split dev tools into `requirements-dev.txt`), not done yet.
+
+**Deploy settings must be right (open, T6)**
+- `API_URL` in `index.html` must be the https Render URL. `ALLOWED_ORIGINS` on Render must be exactly the GitHub Pages origin, never `*`. GitHub Pages serves every tracked file in the repo root publicly (none holds a secret).
+
+**`refrence/test.py` puts the key in the URL (open, Leo's file)**
+- Where: `refrence/test.py:7-8`, `?key=` in the URL, with only the placeholder `"API Key"`.
+- Effect: none today. A real key pasted there would be committed and would show up in logs.
+- Status: open. `AGENTS.md` says not to modify this file.
+
+**`text.png` is still in git history (open, not urgent)**
+- Where: added in `b5a4b26`, removed in `5f0adf4`, still on GitHub.
+- Effect: no personal data or secret (it is the "SPICY" lettering image), but it may be someone else's artwork.
+- Status: open. Removing it means rewriting history.

@@ -160,6 +160,44 @@ def test_error_message_does_not_contain_model_text(text: str) -> None:
     assert "MARKER-1234" not in str(error.value)
 
 
+@pytest.mark.parametrize(
+    "key,bad_value",
+    [
+        ("family", "A" * 101),
+        ("sizeLabel", "B" * 101),
+        ("reasoning", "C" * 501),
+        ("alternatives", ["One", "Two", "Three", "Four", "Five", "Six"]),
+        ("alternatives", ["Fine", "D" * 101]),
+        ("sizeMinPx", -1),
+        ("sizeMaxPx", 1001),
+    ],
+    ids=[
+        "family-too-long",
+        "size-label-too-long",
+        "reasoning-too-long",
+        "six-alternatives",
+        "alternative-too-long",
+        "negative-size",
+        "size-over-1000",
+    ],
+)
+def test_answer_outside_limits_raises(key: str, bad_value: Any) -> None:
+    reply = valid_reply()
+    reply[key] = bad_value
+    with pytest.raises(ValueError):
+        main.parse_gemini_response(to_text(reply))
+
+
+def test_answer_at_the_limits_is_valid() -> None:
+    reply = valid_reply()
+    reply["family"] = "A" * 100
+    reply["reasoning"] = "C" * 500
+    reply["alternatives"] = ["One", "Two", "Three", "Four", "Five"]
+    reply["sizeMinPx"] = 0
+    reply["sizeMaxPx"] = 1000
+    assert main.parse_gemini_response(to_text(reply)).family == "A" * 100
+
+
 # Endpoint behaviour when the parser fails
 
 
